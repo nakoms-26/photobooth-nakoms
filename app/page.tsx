@@ -51,7 +51,7 @@ export default function Home() {
                   <Camera className="h-5 w-5 text-white" />
                 </div>
                 <span className="text-lg font-black font-chillax text-[#202030] sm:text-xl">
-                  SKETCHIE BOX
+                  SNAPKOMS
                 </span>
               </div>
 
@@ -91,7 +91,7 @@ export default function Home() {
               <h1 className="font-chillax text-center text-5xl font-black leading-tight text-white [text-shadow:-1px_-1px_0_#232323,1px_-1px_0_#232323,-1px_1px_0_#232323,1px_1px_0_#232323,-3px_2px_0_#232323] sm:[text-shadow:-1px_-1px_0_#232323,1px_-1px_0_#232323,-1px_1px_0_#232323,1px_1px_0_#232323,-6px_4px_0_#232323] sm:text-5xl md:text-7xl lg:text-left">
                 Abadikan Momen{' '}
                 <span className="block text-[#f8d22a] [text-shadow:-1px_-1px_0_#232323,1px_-1px_0_#232323,-1px_1px_0_#232323,1px_1px_0_#232323,-3px_2px_0_#232323] sm:[text-shadow:-1px_-1px_0_#232323,1px_-1px_0_#232323,-1px_1px_0_#232323,1px_1px_0_#232323,-6px_4px_0_#232323]">
-                  Bareng Sketchie Box!
+                  Bareng Snapkoms!
                 </span>
               </h1>
 
@@ -309,7 +309,7 @@ export default function Home() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#8e36ff]">
                   <Camera className="h-4 w-4 text-white" />
                 </div>
-                <span className="font-chillax text-base font-bold text-[#202030]">SKETCHIE BOX</span>
+                <span className="font-chillax text-base font-bold text-[#202030]">SNAPKOMS</span>
               </div>
               <p className="text-sm text-[#5c5c68]">
                 Digital photobooth modern dan praktis. Powered by Next.js dan React.

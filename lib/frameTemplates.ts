@@ -24,7 +24,7 @@ export const FRAME_TEMPLATES: FrameTemplate[] = [
     accentColor: '#f8d22a',
     photoCount: 4,
     theme: 'arcade-blue',  // reuse existing theme type
-    headerText: 'SKETCHIE BOX',
+    headerText: 'SNAPKOMS',
     footerText: 'DIGITAL PHOTOBOOTH',
     drawOverlay: (ctx, width, height, photoRects) => {
       // Draw rounded photo frames
@@ -46,8 +46,8 @@ export const FRAME_TEMPLATES: FrameTemplate[] = [
     }
   },
   {
-    id: 'sketchie-arcade',
-    name: 'Sketchie Arcade',
+    id: 'snapkoms-arcade',
+    name: 'Snapkoms Arcade',
     description: 'Electric Blue Arcade Frame with yellow stars & retro doodle badges',
     bgColor: '#1f1f27',
     borderColor: '#202030',
@@ -55,7 +55,7 @@ export const FRAME_TEMPLATES: FrameTemplate[] = [
     accentColor: '#f28df8',
     photoCount: 4,
     theme: 'arcade-blue',
-    headerText: 'SKETCHIE BOX',
+    headerText: 'SNAPKOMS',
     footerText: 'ARCADE PHOTOBOOTH',
     drawOverlay: (ctx, width, height, photoRects) => {
       // Draw Yellow Stars

@@ -55,7 +55,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
     soundFx.playClickSound();
     const a = document.createElement('a');
     a.href = pngDataUrl;
-    a.download = `sketchie-box-${Date.now()}.png`;
+    a.download = `snapkoms-${Date.now()}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -66,7 +66,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
     soundFx.playClickSound();
     const a = document.createElement('a');
     a.href = gifUrl;
-    a.download = `sketchie-box-animation-${Date.now()}.gif`;
+    a.download = `snapkoms-animation-${Date.now()}.gif`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

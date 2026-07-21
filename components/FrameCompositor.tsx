@@ -28,7 +28,7 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
 
   const [selectedTemplate, setSelectedTemplate] = useState<FrameTemplate>(FRAME_TEMPLATES[0]);
   const [activeFilter, setActiveFilter] = useState<PhotoFilter>('normal');
-  const [customText, setCustomText] = useState('SKETCHIE BOX MEMORIES');
+  const [customText, setCustomText] = useState('SNAPKOMS MEMORIES');
   const [stickers, setStickers] = useState<ActiveSticker[]>([]);
   const [loadedImages, setLoadedImages] = useState<HTMLImageElement[]>([]);
   const [selectedStickerUid, setSelectedStickerUid] = useState<string | null>(null);

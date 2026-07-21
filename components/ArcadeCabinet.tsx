@@ -38,7 +38,7 @@ export default function ArcadeCabinet({ children, step, onInsertCoin, onReset }:
             <Gamepad2 className="w-8 h-8 text-[#8e36ff]" />
             <div>
               <h1 className="text-2xl md:text-3xl font-bold tracking-wider font-chillax text-[#202030]">
-                SKETCHIE BOX
+                SNAPKOMS
               </h1>
               <p className="text-xs text-[#5c5c68] font-medium tracking-wide">
                 Pengalaman Photobooth Modern
@@ -146,7 +146,7 @@ export default function ArcadeCabinet({ children, step, onInsertCoin, onReset }:
               <Tag className="w-7 h-7 text-[#8e36ff]" />
               <div>
                 <h2 className="text-2xl font-bold font-chillax text-[#8e36ff]">DAFTAR HARGA</h2>
-                <p className="text-xs text-[#5c5c68]">Layanan Photobooth Sketchie Box</p>
+                <p className="text-xs text-[#5c5c68]">Layanan Photobooth Snapkoms</p>
               </div>
             </div>
 
@@ -228,7 +228,7 @@ export default function ArcadeCabinet({ children, step, onInsertCoin, onReset }:
 
       {/* Footer Branding */}
       <footer className="mt-4 text-center text-xs text-[#5c5c68] font-medium">
-        Designed for <strong className="text-[#8e36ff]">Sketchie Box Arcade</strong> • Powered by Next.js & React
+        Designed for <strong className="text-[#8e36ff]">Snapkoms Arcade</strong> • Powered by Next.js & React
       </footer>
     </div>
   );
