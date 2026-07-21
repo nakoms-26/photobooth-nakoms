@@ -1,10 +1,15 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Sketchie Box 🎪 Arcade Photobooth",
-  description: "Playful & Nostalgic Photobooth Arcade Machine with Live Camera, Custom PNG Frames, Stickers & GIF Export!",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
+  title: "Sketchie Box - Digital Photobooth",
+  description: "Digital photobooth modern dan praktis dengan live camera, custom PNG frames, sticker, dan GIF export",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -13,12 +18,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className="h-full light">
+    <html lang="id" className="h-full light" style={{ colorScheme: 'light' }}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://cdn.fontshare.com" crossOrigin="anonymous" />
+        <link
+          rel="preload"
+          href="https://api.fontshare.com/v2/css?f[]=chillax@300,400,500,600,700&display=swap"
+          as="style"
+        />
       </head>
-      <body className="min-h-full flex flex-col bg-[#FFFBEA] text-[#1A1325] selection:bg-[#FFE01B] selection:text-[#1B52D8]">
+      <body className="min-h-full flex flex-col bg-[#f5f5f5] text-[#1f1f27] selection:bg-[#c9a8ff] selection:text-[#1f1f27]">
         {children}
       </body>
     </html>

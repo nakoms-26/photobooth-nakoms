@@ -3,12 +3,13 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { FRAME_TEMPLATES, FrameTemplate } from '@/lib/frameTemplates';
 import StickerPicker, { StickerItem } from './StickerPicker';
-import { Palette, Wand2, Type, Trash2, Move, RotateCw } from 'lucide-react';
+import { Palette, Wand2, Type, Trash2, RotateCw } from 'lucide-react';
 import { soundFx } from '@/lib/soundEffects';
 
 export interface ActiveSticker {
   uid: string;
-  emoji: string;
+  iconType: StickerItem['icon'];
+  color: string;
   x: number;
   y: number;
   scale: number;
@@ -27,7 +28,7 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
 
   const [selectedTemplate, setSelectedTemplate] = useState<FrameTemplate>(FRAME_TEMPLATES[0]);
   const [activeFilter, setActiveFilter] = useState<PhotoFilter>('normal');
-  const [customText, setCustomText] = useState('SKETCHIE BOX MEMORIES 📸');
+  const [customText, setCustomText] = useState('SKETCHIE BOX MEMORIES');
   const [stickers, setStickers] = useState<ActiveSticker[]>([]);
   const [loadedImages, setLoadedImages] = useState<HTMLImageElement[]>([]);
   const [selectedStickerUid, setSelectedStickerUid] = useState<string | null>(null);
@@ -57,6 +58,69 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
     };
   }, [photos]);
 
+  // Vector Shape Canvas Drawer for Stickers
+  const drawVectorSticker = (ctx: CanvasRenderingContext2D, icon: StickerItem['icon'], color: string) => {
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.strokeStyle = '#202030';
+    ctx.lineWidth = 3.5;
+
+    if (icon === 'star') {
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        ctx.lineTo(
+          Math.cos((18 + i * 72) * Math.PI / 180) * 22,
+          -Math.sin((18 + i * 72) * Math.PI / 180) * 22
+        );
+        ctx.lineTo(
+          Math.cos((54 + i * 72) * Math.PI / 180) * 10,
+          -Math.sin((54 + i * 72) * Math.PI / 180) * 10
+        );
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    } else if (icon === 'heart') {
+      ctx.beginPath();
+      ctx.moveTo(0, 10);
+      ctx.bezierCurveTo(-20, -10, -20, -25, 0, -25);
+      ctx.bezierCurveTo(20, -25, 20, -10, 0, 10);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    } else if (icon === 'crown') {
+      ctx.beginPath();
+      ctx.moveTo(-20, 10);
+      ctx.lineTo(-24, -15);
+      ctx.lineTo(-10, -5);
+      ctx.lineTo(0, -22);
+      ctx.lineTo(10, -5);
+      ctx.lineTo(24, -15);
+      ctx.lineTo(20, 10);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    } else if (icon === 'lightning') {
+      ctx.beginPath();
+      ctx.moveTo(5, -22);
+      ctx.lineTo(-18, 0);
+      ctx.lineTo(-2, 0);
+      ctx.lineTo(-5, 22);
+      ctx.lineTo(18, -2);
+      ctx.lineTo(2, -2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      // Default Badge Circle
+      ctx.beginPath();
+      ctx.arc(0, 0, 18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+  };
+
   // Main Canvas Rendering Pipeline
   const renderCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -84,11 +148,11 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
     // 3. Draw Header Title
     const headerHeight = 90;
     ctx.save();
-    ctx.font = 'bold 36px "Shantell Sans", "Fredoka", cursive';
+    ctx.font = 'bold 36px "Fredoka", sans-serif';
     ctx.fillStyle = selectedTemplate.textColor;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.shadowColor = '#1A1325';
+    ctx.shadowColor = '#202030';
     ctx.shadowOffsetX = 3;
     ctx.shadowOffsetY = 3;
     ctx.fillText(selectedTemplate.headerText, CANVAS_WIDTH / 2, 50);
@@ -160,36 +224,34 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
     ctx.font = 'bold 20px "Fredoka", sans-serif';
     ctx.fillStyle = selectedTemplate.textColor;
     ctx.textAlign = 'center';
-    ctx.shadowColor = '#1A1325';
+    ctx.shadowColor = '#202030';
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 2;
     ctx.fillText(customText, CANVAS_WIDTH / 2, footerY);
 
     ctx.font = '14px "Fredoka", sans-serif';
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = '#ffffff';
     const dateStr = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' });
-    ctx.fillText(`★ ${selectedTemplate.footerText} • ${dateStr} ★`, CANVAS_WIDTH / 2, footerY + 28);
+    ctx.fillText(`${selectedTemplate.footerText} - ${dateStr}`, CANVAS_WIDTH / 2, footerY + 28);
     ctx.restore();
 
-    // 8. Render Added Emojis / Stickers
+    // 8. Render Vector Stickers
     stickers.forEach((stk) => {
       ctx.save();
       ctx.translate(stk.x, stk.y);
       ctx.rotate((stk.rotation * Math.PI) / 180);
-      ctx.font = `${Math.round(40 * stk.scale)}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      ctx.scale(stk.scale, stk.scale);
 
       // Selection outline for active sticker
       if (stk.uid === selectedStickerUid) {
-        ctx.strokeStyle = '#FFE01B';
+        ctx.strokeStyle = '#f8d22a';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(0, 0, 30 * stk.scale, 0, Math.PI * 2);
+        ctx.arc(0, 0, 32, 0, Math.PI * 2);
         ctx.stroke();
       }
 
-      ctx.fillText(stk.emoji, 0, 0);
+      drawVectorSticker(ctx, stk.iconType, stk.color);
       ctx.restore();
     });
 
@@ -208,7 +270,8 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
     soundFx.playClickSound();
     const newSticker: ActiveSticker = {
       uid: 'stk_' + Math.random().toString(36).substr(2, 9),
-      emoji: item.emoji,
+      iconType: item.icon,
+      color: item.color,
       x: 240 + (Math.random() * 80 - 40),
       y: 600 + (Math.random() * 200 - 100),
       scale: 1,
@@ -235,11 +298,11 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
     <div className="w-full flex flex-col lg:flex-row items-start justify-center gap-6">
       
       {/* Live Canvas Preview */}
-      <div className="neo-box border-4 p-3 bg-[#FFFFFF] flex flex-col items-center shadow-[6px_6px_0px_#1A1325] mx-auto">
-        <span className="text-xs font-extrabold uppercase text-[#1B52D8] mb-2 font-doodle">
+      <div className="neo-box rounded-2xl p-3 bg-[#ffffff] flex flex-col items-center mx-auto">
+        <span className="text-xs font-extrabold uppercase text-[#8e36ff] mb-2 font-chillax">
           LIVE PHOTO STRIP PREVIEW (PNG)
         </span>
-        <div className="max-h-[580px] overflow-y-auto border-2 border-[#1A1325] rounded-xl p-1 bg-[#FFFBEA]">
+        <div className="max-h-[580px] overflow-y-auto border-2 border-[#202030] rounded-xl p-1 bg-[#faf8ff]">
           <canvas
             ref={canvasRef}
             className="w-[280px] md:w-[320px] h-auto rounded-lg shadow-md"
@@ -251,9 +314,9 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
       <div className="w-full max-w-md flex flex-col gap-4">
         
         {/* 1. Select Frame Template */}
-        <div className="neo-box p-3 bg-[#FFFFFF]">
-          <label className="text-xs font-extrabold uppercase text-[#1B52D8] mb-2 font-doodle flex items-center gap-1">
-            <Palette className="w-4 h-4 text-[#FFE01B]" />
+        <div className="neo-box rounded-2xl p-3 bg-[#ffffff]">
+          <label className="text-xs font-extrabold uppercase text-[#8e36ff] mb-2 font-chillax flex items-center gap-1">
+            <Palette className="w-4 h-4 text-[#f8d22a]" />
             1. PILIH TEMPLATE FRAME BINGKAI
           </label>
           <div className="grid grid-cols-2 gap-2">
@@ -265,7 +328,7 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
                   setSelectedTemplate(tmpl);
                 }}
                 className={`neo-btn p-2 text-xs text-left font-bold flex flex-col justify-between ${
-                  selectedTemplate.id === tmpl.id ? 'bg-[#FFE01B] border-3' : 'bg-[#FFFBEA]'
+                  selectedTemplate.id === tmpl.id ? 'bg-[#8e36ff] text-white ring-2 ring-[#8e36ff]/35' : 'bg-[#faf8ff]'
                 }`}
               >
                 <span>{tmpl.name}</span>
@@ -276,9 +339,9 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
         </div>
 
         {/* 2. Photo Color Filters */}
-        <div className="neo-box p-3 bg-[#FFFFFF]">
-          <label className="text-xs font-extrabold uppercase text-[#1B52D8] mb-2 font-doodle flex items-center gap-1">
-            <Wand2 className="w-4 h-4 text-[#F3A3C7]" />
+        <div className="neo-box rounded-2xl p-3 bg-[#ffffff]">
+          <label className="text-xs font-extrabold uppercase text-[#8e36ff] mb-2 font-chillax flex items-center gap-1">
+            <Wand2 className="w-4 h-4 text-[#f28df8]" />
             2. FILTER WARNA FOTO
           </label>
           <div className="grid grid-cols-5 gap-1.5">
@@ -296,7 +359,7 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
                   setActiveFilter(flt.id as PhotoFilter);
                 }}
                 className={`neo-btn py-1.5 text-[11px] font-bold ${
-                  activeFilter === flt.id ? 'bg-[#1B52D8] text-white border-2' : 'bg-[#FFFBEA]'
+                  activeFilter === flt.id ? 'bg-[#8e36ff] text-white' : 'bg-[#faf8ff]'
                 }`}
               >
                 {flt.label}
@@ -306,9 +369,9 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
         </div>
 
         {/* 3. Custom Text / Watermark */}
-        <div className="neo-box p-3 bg-[#FFFFFF]">
-          <label className="text-xs font-extrabold uppercase text-[#1B52D8] mb-1 font-doodle flex items-center gap-1">
-            <Type className="w-4 h-4 text-[#E52528]" />
+        <div className="neo-box rounded-2xl p-3 bg-[#ffffff]">
+          <label className="text-xs font-extrabold uppercase text-[#8e36ff] mb-1 font-chillax flex items-center gap-1">
+            <Type className="w-4 h-4 text-[#ef4444]" />
             3. TEKS PESAN PESONA (WATERMARK)
           </label>
           <input
@@ -316,7 +379,7 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
             value={customText}
             onChange={(e) => setCustomText(e.target.value)}
             maxLength={35}
-            className="w-full neo-box p-2 text-xs font-bold bg-[#FFFBEA] focus:outline-none focus:ring-2 focus:ring-[#1B52D8]"
+            className="w-full neo-box rounded-2xl p-2 text-xs font-bold bg-[#faf8ff] focus:outline-none focus:ring-2 focus:ring-[#8e36ff]"
             placeholder="Ketik watermark di sini..."
           />
         </div>
@@ -326,21 +389,21 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
 
         {/* Sticker Controls Bar (if stickers added) */}
         {stickers.length > 0 && (
-          <div className="neo-box p-2 bg-[#FFFBEA] flex items-center justify-between text-xs">
-            <span className="font-bold text-[#1A1325]">Stiker Terpasang: {stickers.length}</span>
+          <div className="neo-box rounded-2xl p-2 bg-[#faf8ff] flex items-center justify-between text-xs">
+            <span className="font-bold text-[#202030]">Stiker Terpasang: {stickers.length}</span>
             <div className="flex items-center gap-2">
               {selectedStickerUid && (
                 <>
                   <button
                     onClick={() => rotateSticker(selectedStickerUid)}
-                    className="neo-btn p-1 bg-[#FFE01B] text-black"
+                    className="neo-btn p-1 bg-[#f8d22a] text-[#202030]"
                     title="Putar Stiker"
                   >
                     <RotateCw className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => removeSticker(selectedStickerUid)}
-                    className="neo-btn p-1 bg-[#E52528] text-white"
+                    className="neo-btn p-1 bg-[#ef4444] text-white"
                     title="Hapus Stiker"
                   >
                     <Trash2 className="w-3.5 h-3.5" />

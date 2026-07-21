@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { Camera, RefreshCw, FlipHorizontal, Play, Sparkles, AlertCircle } from 'lucide-react';
+import { Camera, RefreshCw, FlipHorizontal, Sparkles, AlertCircle, RotateCcw, ArrowRight, Check } from 'lucide-react';
 import { soundFx } from '@/lib/soundEffects';
 
 interface CameraViewProps {
   onPhotosCaptured: (capturedImages: string[], photoCount: number) => void;
 }
+
+type CapturePhase = 'READY' | 'COUNTDOWN' | 'REVIEW' | 'REVIEW_ALL';
 
 export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -15,14 +17,18 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isMirrored, setIsMirrored] = useState(true);
-  
-  // Settings & Capture State
+
+  // Settings
   const [targetPhotoCount, setTargetPhotoCount] = useState<3 | 4>(4);
+
+  // Capture State
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
-  const [isCapturingSequence, setIsCapturingSequence] = useState(false);
+  const [capturePhase, setCapturePhase] = useState<CapturePhase>('READY');
   const [countdown, setCountdown] = useState<number | null>(null);
   const [currentPoseIndex, setCurrentPoseIndex] = useState<number>(0);
   const [showFlash, setShowFlash] = useState(false);
+  const [lastCapturedPhoto, setLastCapturedPhoto] = useState<string | null>(null);
+  const [retakeIndex, setRetakeIndex] = useState<number | null>(null);
 
   // Initialize Camera Stream
   const startCamera = useCallback(async () => {
@@ -45,7 +51,7 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
       }
     } catch (err: unknown) {
       console.error('Camera access error:', err);
-      setCameraError('Tidak dapat mengakses kamera. Pastikan Anda mengizinkan akses webcam di browser!');
+      setCameraError('Tidak dapat mengakses kamera. Pastikan Anda mengizinkan akses webcam di browser.');
     }
   }, []);
 
@@ -62,7 +68,7 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
   const captureCurrentFrame = useCallback(() => {
     if (!videoRef.current) return null;
     const video = videoRef.current;
-    
+
     let canvas = hiddenCanvasRef.current;
     if (!canvas) {
       canvas = document.createElement('canvas');
@@ -88,16 +94,9 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
     return canvas.toDataURL('image/png', 0.95);
   }, [isMirrored]);
 
-  // Start Automated Photobooth Multi-Pose Countdown Sequence
-  const startPhotoSequence = () => {
-    setCapturedPhotos([]);
-    setCurrentPoseIndex(0);
-    setIsCapturingSequence(true);
-    runSinglePoseCountdown(0, []);
-  };
-
-  const runSinglePoseCountdown = (poseIdx: number, accumulated: string[]) => {
-    setCurrentPoseIndex(poseIdx + 1);
+  // Start countdown for a single photo
+  const startSingleCountdown = () => {
+    setCapturePhase('COUNTDOWN');
     let count = 3;
     setCountdown(count);
     soundFx.playBeepSound();
@@ -110,174 +109,315 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
       } else {
         clearInterval(timer);
         setCountdown(null);
-        
+
         // Trigger Flash & Camera Shutter
         setShowFlash(true);
         soundFx.playShutterSound();
         soundFx.playFlashBeep();
-        
+
         setTimeout(() => setShowFlash(false), 300);
 
         // Take snapshot
         const frameData = captureCurrentFrame();
         if (frameData) {
-          const updatedPhotos = [...accumulated, frameData];
-          setCapturedPhotos(updatedPhotos);
-
-          if (poseIdx + 1 < targetPhotoCount) {
-            // Wait 1.5 seconds between poses for user to change expression
-            setTimeout(() => {
-              runSinglePoseCountdown(poseIdx + 1, updatedPhotos);
-            }, 1500);
-          } else {
-            // All photos captured!
-            setIsCapturingSequence(false);
-            soundFx.playSuccessCheer();
-            setTimeout(() => {
-              onPhotosCaptured(updatedPhotos, targetPhotoCount);
-            }, 1000);
-          }
+          setLastCapturedPhoto(frameData);
+          setCapturePhase('REVIEW');
+        } else {
+          setCapturePhase('READY');
         }
       }
     }, 1000);
   };
 
+  // Accept the current photo and move on
+  const handleAcceptPhoto = () => {
+    if (!lastCapturedPhoto) return;
+    soundFx.playClickSound();
+
+    if (retakeIndex !== null) {
+      // Replacing a specific photo during REVIEW_ALL retake
+      const updated = [...capturedPhotos];
+      updated[retakeIndex] = lastCapturedPhoto;
+      setCapturedPhotos(updated);
+      setRetakeIndex(null);
+      setLastCapturedPhoto(null);
+      setCapturePhase('REVIEW_ALL');
+    } else {
+      // Adding a new photo
+      const updatedPhotos = [...capturedPhotos, lastCapturedPhoto];
+      setCapturedPhotos(updatedPhotos);
+      setLastCapturedPhoto(null);
+
+      if (updatedPhotos.length >= targetPhotoCount) {
+        // All photos captured
+        soundFx.playSuccessCheer();
+        setCapturePhase('REVIEW_ALL');
+      } else {
+        // More photos to take
+        setCurrentPoseIndex(updatedPhotos.length);
+        setCapturePhase('READY');
+      }
+    }
+  };
+
+  // Retake the current photo (discard and re-shoot)
+  const handleRetakePhoto = () => {
+    soundFx.playClickSound();
+    setLastCapturedPhoto(null);
+    setCapturePhase('READY');
+  };
+
+  // Retake a specific photo from REVIEW_ALL
+  const handleRetakeFromGrid = (index: number) => {
+    soundFx.playClickSound();
+    setRetakeIndex(index);
+    setCurrentPoseIndex(index);
+    setLastCapturedPhoto(null);
+    setCapturePhase('READY');
+  };
+
+  // Final confirmation — proceed to frame compositor
+  const handleConfirmAll = () => {
+    soundFx.playSuccessCheer();
+    onPhotosCaptured(capturedPhotos, targetPhotoCount);
+  };
+
+  const effectivePoseNumber = retakeIndex !== null ? retakeIndex + 1 : currentPoseIndex + 1;
+
   return (
-    <div className="w-full flex flex-col lg:flex-row items-center gap-6 justify-center">
-      
-      {/* Camera Live View Container */}
-      <div className="relative w-full max-w-lg aspect-[4/3] neo-box border-4 bg-[#1A1325] overflow-hidden flex items-center justify-center">
-        
-        {/* Flash Effect Layer */}
-        {showFlash && (
-          <div className="absolute inset-0 bg-white z-40 animate-camera-flash pointer-events-none" />
-        )}
+    <div className="w-full flex flex-col items-center gap-6 justify-center">
 
-        {/* Countdown Overlay */}
-        {countdown !== null && (
-          <div className="absolute inset-0 z-30 bg-[#1A1325]/40 backdrop-blur-xs flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-8xl font-extrabold font-doodle text-[#FFE01B] drop-shadow-[4px_4px_0px_#1A1325] animate-bounce">
-              {countdown}
-            </span>
-            <span className="text-xl font-bold text-white mt-2 bg-[#E52528] px-4 py-1 rounded-full neo-box border-2">
-              POSE #{currentPoseIndex} DECK! 📸
-            </span>
-          </div>
-        )}
-
-        {/* Video Stream Element */}
-        {cameraError ? (
-          <div className="p-6 text-center text-white flex flex-col items-center gap-3">
-            <AlertCircle className="w-12 h-12 text-[#E52528]" />
-            <p className="font-bold text-sm text-red-300">{cameraError}</p>
-            <button
-              onClick={startCamera}
-              className="neo-btn px-4 py-2 bg-[#FFE01B] text-black text-xs font-bold"
-            >
-              COBA LAGI / REFRESH
-            </button>
-          </div>
-        ) : (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className={`w-full h-full object-cover ${isMirrored ? 'scale-x-[-1]' : ''}`}
-          />
-        )}
-
-        {/* Camera Live Badge */}
-        <div className="absolute top-3 left-3 bg-[#E52528] text-white text-xs font-extrabold px-3 py-1 rounded-full border-2 border-[#1A1325] shadow-[2px_2px_0px_#1A1325] flex items-center gap-1.5 z-20">
-          <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-          LIVE WEBCAM
-        </div>
-
-        {/* Mirror Toggle Button */}
-        <button
-          onClick={() => setIsMirrored(!isMirrored)}
-          className="absolute top-3 right-3 bg-[#FFFFFF] border-2 border-[#1A1325] p-2 rounded-full hover:bg-[#FFE01B] transition shadow-[2px_2px_0px_#1A1325] z-20"
-          title="Flip Camera Mirror"
-        >
-          <FlipHorizontal className="w-4 h-4 text-[#1B52D8]" />
-        </button>
-      </div>
-
-      {/* Photobooth Side Control Panel */}
-      <div className="w-full max-w-sm flex flex-col gap-4">
-        
-        {/* Session Pose Selector */}
-        <div className="neo-box p-4 bg-[#FFFFFF]">
-          <label className="text-xs font-extrabold uppercase text-[#1B52D8] block mb-2 font-doodle">
-            1. PILIH JUMLAH POSE (POSE COUNT)
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => !isCapturingSequence && setTargetPhotoCount(4)}
-              disabled={isCapturingSequence}
-              className={`neo-btn py-2 text-xs font-bold ${
-                targetPhotoCount === 4 ? 'bg-[#FFE01B] text-[#1A1325] border-3' : 'bg-[#FFFBEA] text-gray-600'
-              }`}
-            >
-              📸 4 POSES (Classic)
-            </button>
-            <button
-              onClick={() => !isCapturingSequence && setTargetPhotoCount(3)}
-              disabled={isCapturingSequence}
-              className={`neo-btn py-2 text-xs font-bold ${
-                targetPhotoCount === 3 ? 'bg-[#FFE01B] text-[#1A1325] border-3' : 'bg-[#FFFBEA] text-gray-600'
-              }`}
-            >
-              📸 3 POSES (Trio)
-            </button>
-          </div>
-        </div>
-
-        {/* Live Pose Preview Grid */}
-        <div className="neo-box p-4 bg-[#FFFFFF]">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-extrabold uppercase text-[#1B52D8] font-doodle">
-              2. HASIL POSE FOTO ({capturedPhotos.length}/{targetPhotoCount})
-            </span>
-            {isCapturingSequence && (
-              <span className="text-xs font-bold text-[#E52528] animate-pulse">
-                Taking photos...
-              </span>
-            )}
+      {/* REVIEW ALL — Grid of all photos with retake option */}
+      {capturePhase === 'REVIEW_ALL' ? (
+        <div className="w-full max-w-2xl flex flex-col items-center gap-5 animate-fadeIn">
+          <div className="neo-box-purple p-4 w-full text-center">
+            <h2 className="text-xl font-bold font-chillax text-white">
+              Semua Foto Selesai
+            </h2>
+            <p className="text-sm text-white/80 mt-1">
+              Periksa hasil foto. Klik foto yang ingin diulang, atau lanjutkan ke editor frame.
+            </p>
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
-            {Array.from({ length: targetPhotoCount }).map((_, idx) => (
-              <div
-                key={idx}
-                className="aspect-square neo-box border-2 bg-[#FFFBEA] overflow-hidden flex items-center justify-center text-xs font-bold text-gray-400"
-              >
-                {capturedPhotos[idx] ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full">
+            {capturedPhotos.map((photo, idx) => (
+              <div key={idx} className="flex flex-col items-center gap-2">
+                <div className="neo-box p-1 overflow-hidden w-full aspect-[3/4]">
                   <img
-                    src={capturedPhotos[idx]}
-                    alt={`Pose ${idx + 1}`}
-                    className="w-full h-full object-cover"
+                    src={photo}
+                    alt={`Foto ${idx + 1}`}
+                    className="w-full h-full object-cover rounded-xl"
                   />
-                ) : (
-                  <span>#{idx + 1}</span>
-                )}
+                </div>
+                <div className="flex items-center gap-2 w-full">
+                  <span className="text-xs font-bold text-[#5c5c68]">Foto {idx + 1}</span>
+                  <button
+                    onClick={() => handleRetakeFromGrid(idx)}
+                    className="neo-btn px-2 py-1 text-[11px] font-bold flex items-center gap-1 ml-auto"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Ulangi
+                  </button>
+                </div>
               </div>
             ))}
           </div>
+
+          <button
+            onClick={handleConfirmAll}
+            className="neo-btn-primary py-4 px-10 text-base font-bold flex items-center gap-2"
+          >
+            <Check className="w-5 h-5" />
+            Lanjutkan ke Editor Frame
+          </button>
         </div>
+      ) : (
+        /* CAMERA VIEW — READY / COUNTDOWN / REVIEW */
+        <>
+          {/* Camera Live View Container — Larger frame */}
+          <div className="relative w-full max-w-2xl aspect-[16/10] neo-box border-2 bg-[#1f1f27] overflow-hidden flex items-center justify-center shadow-[0_8px_0_#202030]">
 
-        {/* Main Action Snap Button */}
-        <button
-          onClick={startPhotoSequence}
-          disabled={isCapturingSequence || !!cameraError}
-          className="neo-btn py-4 bg-[#E52528] text-white text-base md:text-lg font-extrabold flex items-center justify-center gap-2 hover:bg-[#1B52D8] transition border-4 disabled:opacity-50 shadow-[5px_5px_0px_#1A1325]"
-        >
-          <Camera className="w-6 h-6" />
-          {isCapturingSequence ? `AMBIL POSE #${currentPoseIndex}...` : 'MULAI FOTO SEKARANG! 📸'}
-        </button>
+            {/* Flash Effect Layer */}
+            {showFlash && (
+              <div className="absolute inset-0 bg-white z-40 animate-camera-flash pointer-events-none" />
+            )}
 
-      </div>
+            {/* Countdown Overlay */}
+            {countdown !== null && (
+              <div className="absolute inset-0 z-30 bg-[#1f1f27]/50 backdrop-blur-xs flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-8xl font-black font-chillax text-[#f8d22a] drop-shadow-[3px_3px_0px_#202030] animate-bounce">
+                  {countdown}
+                </span>
+                <span className="text-lg font-bold text-white mt-3 bg-[#8e36ff] px-5 py-1.5 rounded-full border-2 border-[#202030]">
+                  Pose #{effectivePoseNumber} - Bersiap!
+                </span>
+              </div>
+            )}
 
+            {/* Review Overlay — Show last captured photo */}
+            {capturePhase === 'REVIEW' && lastCapturedPhoto && (
+              <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#1f1f27]">
+                <img
+                  src={lastCapturedPhoto}
+                  alt="Hasil foto"
+                  className={`w-full h-full object-cover ${isMirrored ? '' : ''}`}
+                />
+              </div>
+            )}
+
+            {/* Video Stream Element */}
+            {cameraError ? (
+              <div className="p-6 text-center text-white flex flex-col items-center gap-3">
+                <AlertCircle className="w-12 h-12 text-[#ef4444]" />
+                <p className="font-bold text-sm text-red-300">{cameraError}</p>
+                <button
+                  onClick={startCamera}
+                  className="neo-btn px-4 py-2 bg-[#f8d22a] text-[#202030] text-xs font-bold"
+                >
+                  Coba Lagi
+                </button>
+              </div>
+            ) : (
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className={`w-full h-full object-cover ${isMirrored ? 'scale-x-[-1]' : ''} ${capturePhase === 'REVIEW' ? 'invisible' : ''}`}
+              />
+            )}
+
+            {/* Camera Live Badge */}
+            {capturePhase !== 'REVIEW' && (
+              <div className="absolute top-3 left-3 bg-[#8e36ff] text-white text-xs font-bold px-3 py-1 rounded-full border-2 border-[#202030] shadow-[0_2px_0_#202030] flex items-center gap-1.5 z-20">
+                <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                LIVE
+              </div>
+            )}
+
+            {/* Pose Counter Badge */}
+            <div className="absolute top-3 right-14 bg-[#f8d22a] text-[#202030] text-xs font-bold px-3 py-1 rounded-full border-2 border-[#202030] shadow-[0_2px_0_#202030] z-20">
+              {capturedPhotos.length + (capturePhase === 'REVIEW' ? 1 : 0)}/{targetPhotoCount}
+            </div>
+
+            {/* Mirror Toggle Button */}
+            {capturePhase !== 'REVIEW' && (
+              <button
+                onClick={() => setIsMirrored(!isMirrored)}
+                className="absolute top-3 right-3 bg-white border-2 border-[#202030] p-2 rounded-full hover:bg-[#faf8ff] transition shadow-[0_2px_0_#202030] z-20"
+                title="Flip Camera Mirror"
+              >
+                <FlipHorizontal className="w-4 h-4 text-[#8e36ff]" />
+              </button>
+            )}
+          </div>
+
+          {/* Controls Below Camera */}
+          <div className="w-full max-w-2xl flex flex-col gap-4">
+
+            {/* Pose Selector — Only show before any capture starts */}
+            {capturedPhotos.length === 0 && capturePhase === 'READY' && retakeIndex === null && (
+              <div className="neo-box p-4">
+                <label className="text-xs font-bold uppercase text-[#8e36ff] block mb-2 font-chillax">
+                  Pilih Jumlah Foto
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setTargetPhotoCount(4)}
+                    className={`neo-btn py-2.5 text-sm font-bold ${
+                      targetPhotoCount === 4
+                        ? 'bg-[#8e36ff] text-white shadow-[2px_2px_0_#c9a8ff] ring-2 ring-[#8e36ff]/35'
+                        : 'bg-[#faf8ff] text-[#2c2c36]'
+                    }`}
+                  >
+                    4 Foto (Classic)
+                  </button>
+                  <button
+                    onClick={() => setTargetPhotoCount(3)}
+                    className={`neo-btn py-2.5 text-sm font-bold ${
+                      targetPhotoCount === 3
+                        ? 'bg-[#8e36ff] text-white shadow-[2px_2px_0_#c9a8ff] ring-2 ring-[#8e36ff]/35'
+                        : 'bg-[#faf8ff] text-[#2c2c36]'
+                    }`}
+                  >
+                    3 Foto (Trio)
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Photo Thumbnails Row */}
+            {(capturePhase === 'READY' || capturePhase === 'COUNTDOWN') && (
+              <div className="neo-box p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold uppercase text-[#8e36ff] font-chillax">
+                    Progress Foto ({capturedPhotos.length}/{targetPhotoCount})
+                  </span>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {Array.from({ length: targetPhotoCount }).map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={`aspect-square neo-box border-2 overflow-hidden flex items-center justify-center text-xs font-bold ${
+                        idx === currentPoseIndex
+                          ? 'ring-2 ring-[#8e36ff] bg-[#faf8ff]'
+                          : 'bg-[#faf8ff]'
+                      } ${capturedPhotos[idx] ? '' : 'text-[#5c5c68]'}`}
+                    >
+                      {capturedPhotos[idx] ? (
+                        <img
+                          src={capturedPhotos[idx]}
+                          alt={`Foto ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span>#{idx + 1}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            {capturePhase === 'READY' && (
+              <button
+                onClick={startSingleCountdown}
+                disabled={!!cameraError}
+                className="neo-btn-primary py-4 px-8 text-base font-bold flex items-center justify-center gap-2 w-full disabled:opacity-50"
+              >
+                <Camera className="w-5 h-5" />
+                {retakeIndex !== null
+                  ? `Ulangi Foto #${retakeIndex + 1}`
+                  : `Ambil Foto #${currentPoseIndex + 1}`
+                }
+              </button>
+            )}
+
+            {capturePhase === 'REVIEW' && (
+              <div className="flex items-center gap-3 w-full">
+                <button
+                  onClick={handleRetakePhoto}
+                  className="neo-btn py-3.5 px-6 text-sm font-bold flex items-center justify-center gap-2 flex-1"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Ulangi Foto Ini
+                </button>
+                <button
+                  onClick={handleAcceptPhoto}
+                  className="neo-btn-primary py-3.5 px-6 text-sm font-bold flex items-center justify-center gap-2 flex-1"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                  {(retakeIndex !== null) || (capturedPhotos.length + 1 >= targetPhotoCount)
+                    ? 'Simpan'
+                    : 'Simpan & Lanjut'
+                  }
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

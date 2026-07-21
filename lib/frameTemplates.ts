@@ -15,23 +15,54 @@ export interface FrameTemplate {
 
 export const FRAME_TEMPLATES: FrameTemplate[] = [
   {
+    id: 'jepreto-purple',
+    name: 'Modern Purple',
+    description: 'Clean modern frame with purple accents',
+    bgColor: '#8e36ff',
+    borderColor: '#202030',
+    textColor: '#ffffff',
+    accentColor: '#f8d22a',
+    photoCount: 4,
+    theme: 'arcade-blue',  // reuse existing theme type
+    headerText: 'SKETCHIE BOX',
+    footerText: 'DIGITAL PHOTOBOOTH',
+    drawOverlay: (ctx, width, height, photoRects) => {
+      // Draw rounded photo frames
+      photoRects.forEach((rect) => {
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+      });
+      // Corner decorations - small circles
+      ctx.fillStyle = '#f8d22a';
+      [{ x: 28, y: 38 }, { x: width - 28, y: 38 }, { x: 28, y: height - 38 }, { x: width - 28, y: height - 38 }].forEach(pos => {
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#202030';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+    }
+  },
+  {
     id: 'sketchie-arcade',
-    name: 'Sketchie Arcade 🕹️',
+    name: 'Sketchie Arcade',
     description: 'Electric Blue Arcade Frame with yellow stars & retro doodle badges',
-    bgColor: '#1B52D8',
-    borderColor: '#1A1325',
-    textColor: '#FFE01B',
-    accentColor: '#E52528',
+    bgColor: '#1f1f27',
+    borderColor: '#202030',
+    textColor: '#f8d22a',
+    accentColor: '#f28df8',
     photoCount: 4,
     theme: 'arcade-blue',
     headerText: 'SKETCHIE BOX',
-    footerText: '★ ARCADE PHOTOBOOTH ★',
+    footerText: 'ARCADE PHOTOBOOTH',
     drawOverlay: (ctx, width, height, photoRects) => {
       // Draw Yellow Stars
       const drawStar = (cx: number, cy: number, r: number) => {
         ctx.save();
-        ctx.fillStyle = '#FFE01B';
-        ctx.strokeStyle = '#1A1325';
+        ctx.fillStyle = '#f8d22a';
+        ctx.strokeStyle = '#202030';
         ctx.lineWidth = 3;
         ctx.beginPath();
         for (let i = 0; i < 5; i++) {
@@ -55,9 +86,9 @@ export const FRAME_TEMPLATES: FrameTemplate[] = [
       drawStar(30, height - 40, 14);
       drawStar(width - 30, height - 40, 14);
 
-      // Draw cute photo slot frames
+      // Draw photo slot frames
       photoRects.forEach((rect) => {
-        ctx.strokeStyle = '#1A1325';
+        ctx.strokeStyle = '#202030';
         ctx.lineWidth = 4;
         ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
       });
@@ -65,32 +96,31 @@ export const FRAME_TEMPLATES: FrameTemplate[] = [
   },
   {
     id: 'carnival-booth',
-    name: 'Carnival Awning 🎪',
+    name: 'Carnival Awning',
     description: 'Red & White awning stripes with lively booth badges',
-    bgColor: '#FFFFFF',
-    borderColor: '#E52528',
-    textColor: '#1B52D8',
-    accentColor: '#FFE01B',
+    bgColor: '#ffffff',
+    borderColor: '#ef4444',
+    textColor: '#8e36ff',
+    accentColor: '#f8d22a',
     photoCount: 4,
     theme: 'carnival-red',
     headerText: 'CARNIVAL SNAP',
-    footerText: 'MEMORIES • EST. 2026',
+    footerText: 'MEMORIES EST. 2026',
     drawOverlay: (ctx, width, height, photoRects) => {
       // Top Awning Stripes
       ctx.save();
       const awningHeight = 55;
       const stripeWidth = 25;
       for (let x = 0; x < width; x += stripeWidth) {
-        ctx.fillStyle = (Math.floor(x / stripeWidth) % 2 === 0) ? '#E52528' : '#FFFFFF';
+        ctx.fillStyle = (Math.floor(x / stripeWidth) % 2 === 0) ? '#ef4444' : '#ffffff';
         ctx.fillRect(x, 0, stripeWidth, awningHeight);
       }
-      // Awning scalloped bottom
-      ctx.fillStyle = '#1A1325';
+      ctx.fillStyle = '#202030';
       ctx.fillRect(0, awningHeight, width, 4);
       ctx.restore();
 
       photoRects.forEach((rect) => {
-        ctx.strokeStyle = '#E52528';
+        ctx.strokeStyle = '#ef4444';
         ctx.lineWidth = 5;
         ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
       });
@@ -98,20 +128,19 @@ export const FRAME_TEMPLATES: FrameTemplate[] = [
   },
   {
     id: 'starry-pink',
-    name: 'Starry Candy 🍬',
+    name: 'Starry Candy',
     description: 'Soft Pink Pastel with cute doodle stars and candy decorations',
-    bgColor: '#F3A3C7',
-    borderColor: '#1A1325',
-    textColor: '#FFFFFF',
-    accentColor: '#FFE01B',
+    bgColor: '#f28df8',
+    borderColor: '#202030',
+    textColor: '#ffffff',
+    accentColor: '#f8d22a',
     photoCount: 3,
     theme: 'starry-pink',
     headerText: 'SWEET SKETCH',
-    footerText: 'PURE JOY & MAGIC ✨',
+    footerText: 'PURE JOY & MAGIC',
     drawOverlay: (ctx, width, height, photoRects) => {
-      // Draw Candies and Dots
       ctx.save();
-      ctx.fillStyle = '#FFFFFF';
+      ctx.fillStyle = '#ffffff';
       for (let i = 0; i < 12; i++) {
         const x = (i * 70 + 20) % width;
         const y = 30 + (i * 90) % (height - 60);
@@ -122,10 +151,10 @@ export const FRAME_TEMPLATES: FrameTemplate[] = [
       ctx.restore();
 
       photoRects.forEach((rect) => {
-        ctx.strokeStyle = '#FFFFFF';
+        ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 6;
         ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
-        ctx.strokeStyle = '#1A1325';
+        ctx.strokeStyle = '#202030';
         ctx.lineWidth = 3;
         ctx.strokeRect(rect.x - 3, rect.y - 3, rect.w + 6, rect.h + 6);
       });
@@ -133,23 +162,19 @@ export const FRAME_TEMPLATES: FrameTemplate[] = [
   },
   {
     id: 'pop-yellow',
-    name: 'Vivid Pop Yellow ⚡',
+    name: 'Vivid Pop Yellow',
     description: 'Bright Yellow energetic frame with comic doodles',
-    bgColor: '#FFE01B',
-    borderColor: '#1A1325',
-    textColor: '#1B52D8',
-    accentColor: '#E52528',
+    bgColor: '#f8d22a',
+    borderColor: '#202030',
+    textColor: '#8e36ff',
+    accentColor: '#ef4444',
     photoCount: 3,
     theme: 'pop-yellow',
-    headerText: 'BOOTH SHOT!',
-    footerText: '⚡ SUPER POP FUN ⚡',
+    headerText: 'BOOTH SHOT',
+    footerText: 'SUPER POP FUN',
     drawOverlay: (ctx, width, height, photoRects) => {
-      // Corner Comic Brackets
-      ctx.strokeStyle = '#1A1325';
-      ctx.lineWidth = 5;
-
       photoRects.forEach((rect) => {
-        ctx.strokeStyle = '#1B52D8';
+        ctx.strokeStyle = '#8e36ff';
         ctx.lineWidth = 5;
         ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
       });

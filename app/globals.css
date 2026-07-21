@@ -1,141 +1,180 @@
+@import url('https://api.fontshare.com/v2/css?f[]=chillax@300,400,500,600,700&display=swap');
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Shantell+Sans:ital,wght@0,400;0,700;0,800;1,400&display=swap');
 
 :root {
-  --electric-blue: #1B52D8;
-  --bright-yellow: #FFE01B;
-  --vibrant-red: #E52528;
-  --pure-white: #FFFFFF;
-  --soft-pink: #F3A3C7;
-  --cream-bg: #FFFBEA;
-  --doodle-dark: #1A1325;
+  --purple-primary: #8e36ff;
+  --purple-dark: #7f2cf1;
+  --purple-shadow: #1d102f;
+  --purple-light: #c9a8ff;
+  --purple-bg: #faf8ff;
+  --yellow-accent: #f8d22a;
+  --yellow-shadow: #17171f;
+  --pink-accent: #f28df8;
+  --pink-light: #e77bef;
+  --dark: #202030;
+  --dark-text: #1f1f27;
+  --dark-muted: #2c2c36;
+  --gray-text: #5c5c68;
+  --bg-page: #f5f5f5;
+  --bg-card: #ffffff;
+  --border-color: #202030;
+  --ring-purple: rgba(142, 54, 255, 0.35);
 
-  --background: #FFFBEA;
-  --foreground: #1A1325;
+  --background: #f5f5f5;
+  --foreground: #1f1f27;
 }
 
 /* Force light mode always */
 html, body {
-  background-color: var(--cream-bg) !important;
-  color: var(--doodle-dark) !important;
-  font-family: 'Fredoka', 'Shantell Sans', system-ui, cursive, sans-serif;
+  background-color: var(--bg-page) !important;
+  color: var(--dark-text) !important;
+  font-family: 'Chillax', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
 }
 
-/* Carnival awning strip pattern */
-.carnival-awning {
-  background: repeating-linear-gradient(
-    -45deg,
-    #E52528,
-    #E52528 24px,
-    #FFFFFF 24px,
-    #FFFFFF 48px
-  );
-  box-shadow: 0 6px 0 #1A1325;
+/* Subtle grid background pattern (Jepreto style) */
+.bg-grid {
+  background-color: var(--bg-page);
+  background-image:
+    linear-gradient(to right, #00000010 1px, transparent 1px),
+    linear-gradient(to bottom, #00000010 1px, transparent 1px);
+  background-size: 36px 36px;
 }
 
-.carnival-awning-blue {
-  background: repeating-linear-gradient(
-    -45deg,
-    #1B52D8,
-    #1B52D8 24px,
-    #FFE01B 24px,
-    #FFE01B 48px
-  );
-  box-shadow: 0 6px 0 #1A1325;
-}
-
-/* Doodle / Neubrutalism UI style boxes */
+/* Neubrutalist Card (Jepreto style) */
 .neo-box {
-  background-color: #FFFFFF;
-  border: 3.5px solid #1A1325;
-  box-shadow: 5px 5px 0px #1A1325;
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  box-shadow: 0 6px 0 var(--border-color);
   border-radius: 16px;
   transition: all 0.15s ease-in-out;
 }
 
-.neo-box-blue {
-  background-color: #1B52D8;
-  color: #FFFFFF;
-  border: 3.5px solid #1A1325;
-  box-shadow: 5px 5px 0px #1A1325;
+.neo-box-purple {
+  background-color: var(--purple-primary);
+  color: #ffffff;
+  border: 2px solid var(--border-color);
+  box-shadow: 0 6px 0 var(--border-color);
   border-radius: 16px;
 }
 
 .neo-box-yellow {
-  background-color: #FFE01B;
-  color: #1A1325;
-  border: 3.5px solid #1A1325;
-  box-shadow: 5px 5px 0px #1A1325;
+  background-color: var(--yellow-accent);
+  color: var(--dark);
+  border: 2px solid var(--border-color);
+  box-shadow: 0 6px 0 var(--border-color);
   border-radius: 16px;
 }
 
 .neo-box-pink {
-  background-color: #F3A3C7;
-  color: #1A1325;
-  border: 3.5px solid #1A1325;
-  box-shadow: 5px 5px 0px #1A1325;
+  background-color: var(--pink-accent);
+  color: var(--dark);
+  border: 2px solid var(--border-color);
+  box-shadow: 0 6px 0 var(--border-color);
   border-radius: 16px;
 }
 
+/* Neubrutalist Button — Jepreto press-down style */
 .neo-btn {
-  background-color: #FFE01B;
-  color: #1A1325;
-  border: 3.5px solid #1A1325;
-  box-shadow: 4px 4px 0px #1A1325;
-  border-radius: 14px;
+  background-color: var(--bg-card);
+  color: var(--dark);
+  border: 2px solid var(--border-color);
+  box-shadow: 0 4px 0 var(--border-color);
+  border-radius: 12px;
   font-weight: 700;
   cursor: pointer;
   user-select: none;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  transition: all 0.15s ease;
 }
 
 .neo-btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0px #1A1325;
+  transform: translateY(1px);
+  box-shadow: 0 3px 0 var(--border-color);
 }
 
 .neo-btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0px #1A1325;
+  transform: translateY(4px);
+  box-shadow: none;
 }
 
-.neo-btn-blue {
-  background-color: #1B52D8;
-  color: #FFFFFF;
-  border: 3.5px solid #1A1325;
-  box-shadow: 4px 4px 0px #1A1325;
-  border-radius: 14px;
+/* Primary CTA — Purple */
+.neo-btn-primary {
+  background-color: var(--purple-primary);
+  color: #ffffff;
+  border: 2px solid var(--border-color);
+  box-shadow: 0 6px 0 var(--purple-shadow);
+  border-radius: 9999px;
   font-weight: 700;
   cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
 }
 
-.neo-btn-red {
-  background-color: #E52528;
-  color: #FFFFFF;
-  border: 3.5px solid #1A1325;
-  box-shadow: 4px 4px 0px #1A1325;
-  border-radius: 14px;
+.neo-btn-primary:hover {
+  background-color: var(--purple-dark);
+  transform: translateY(2px);
+  box-shadow: 0 4px 0 var(--purple-shadow);
+}
+
+.neo-btn-primary:active {
+  transform: translateY(6px);
+  box-shadow: none;
+}
+
+/* Secondary CTA — Yellow */
+.neo-btn-yellow {
+  background-color: var(--yellow-accent);
+  color: var(--dark);
+  border: 2px solid var(--border-color);
+  box-shadow: 0 6px 0 var(--yellow-shadow);
+  border-radius: 9999px;
   font-weight: 700;
   cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
 }
 
-.font-doodle {
-  font-family: 'Shantell Sans', 'Fredoka', cursive, sans-serif;
+.neo-btn-yellow:hover {
+  transform: translateY(2px);
+  box-shadow: 0 4px 0 var(--yellow-shadow);
+}
+
+.neo-btn-yellow:active {
+  transform: translateY(6px);
+  box-shadow: none;
+}
+
+/* Danger / Red CTA */
+.neo-btn-danger {
+  background-color: #ef4444;
+  color: #ffffff;
+  border: 2px solid var(--border-color);
+  box-shadow: 0 4px 0 var(--border-color);
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.neo-btn-danger:hover {
+  transform: translateY(1px);
+  box-shadow: 0 3px 0 var(--border-color);
+}
+
+.neo-btn-danger:active {
+  transform: translateY(4px);
+  box-shadow: none;
+}
+
+.font-chillax {
+  font-family: 'Chillax', system-ui, -apple-system, sans-serif;
+  font-weight: 700;
 }
 
 /* Animations */
-@keyframes coinInsertPulse {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(255, 224, 27, 0.6)); }
-  50% { transform: scale(1.05); filter: drop-shadow(0 0 12px rgba(255, 224, 27, 1)); }
-}
-
-.animate-coin-slot {
-  animation: coinInsertPulse 1.8s infinite ease-in-out;
-}
-
 @keyframes flashEffect {
   0% { opacity: 0; }
   10% { opacity: 1; }
@@ -146,24 +185,42 @@ html, body {
   animation: flashEffect 0.4s ease-out forwards;
 }
 
-@keyframes floatDoodle {
-  0%, 100% { transform: translateY(0px) rotate(-2deg); }
-  50% { transform: translateY(-8px) rotate(2deg); }
+@keyframes floatSmooth {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
 }
 
 .animate-float {
-  animation: floatDoodle 3s infinite ease-in-out;
+  animation: floatSmooth 3s infinite ease-in-out;
 }
 
-/* Custom scrollbar for doodle style */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeInUp 0.35s ease-out;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(142, 54, 255, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(142, 54, 255, 0); }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s infinite ease-in-out;
+}
+
+/* Custom scrollbar — Jepreto purple */
 ::-webkit-scrollbar {
   width: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: #FFFBEA;
+  background: var(--bg-page);
 }
 ::-webkit-scrollbar-thumb {
-  background: #1B52D8;
-  border: 2px solid #1A1325;
+  background: var(--purple-primary);
+  border: 2px solid var(--border-color);
   border-radius: 8px;
 }
