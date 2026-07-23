@@ -1,7 +1,8 @@
 'use client';
+/* eslint-disable @next/next/no-img-element */
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { Camera, RefreshCw, FlipHorizontal, Sparkles, AlertCircle, RotateCcw, ArrowRight, Check } from 'lucide-react';
+import { Camera, FlipHorizontal, AlertCircle, RotateCcw, ArrowRight, Check } from 'lucide-react';
 import { soundFx } from '@/lib/soundEffects';
 
 interface CameraViewProps {
@@ -13,8 +14,8 @@ type CapturePhase = 'READY' | 'COUNTDOWN' | 'REVIEW' | 'REVIEW_ALL';
 export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hiddenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
-  const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isMirrored, setIsMirrored] = useState(true);
 
@@ -33,9 +34,8 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
   // Initialize Camera Stream
   const startCamera = useCallback(async () => {
     try {
-      setCameraError(null);
-      if (stream) {
-        stream.getTracks().forEach(t => t.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
       }
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -45,7 +45,8 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
         },
         audio: false,
       });
-      setStream(mediaStream);
+      streamRef.current = mediaStream;
+      setCameraError(null);
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
@@ -56,13 +57,17 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
   }, []);
 
   useEffect(() => {
-    startCamera();
+    const timer = setTimeout(() => {
+      startCamera();
+    }, 0);
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(t => t.stop());
+      clearTimeout(timer);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
       }
     };
-  }, []);
+  }, [startCamera]);
 
   // Snap Single Photo from Video Element onto Hidden Canvas
   const captureCurrentFrame = useCallback(() => {
@@ -182,8 +187,6 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
     onPhotosCaptured(capturedPhotos, targetPhotoCount);
   };
 
-  const effectivePoseNumber = retakeIndex !== null ? retakeIndex + 1 : currentPoseIndex + 1;
-
   return (
     <div className="w-full flex flex-col items-center gap-6 justify-center">
 
@@ -202,7 +205,7 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full">
             {capturedPhotos.map((photo, idx) => (
               <div key={idx} className="flex flex-col items-center gap-2">
-                <div className="neo-box p-1 overflow-hidden w-full aspect-[3/4]">
+                <div className="neo-box p-1 overflow-hidden w-full aspect-3/4">
                   <img
                     src={photo}
                     alt={`Foto ${idx + 1}`}
@@ -235,7 +238,7 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
         /* CAMERA VIEW — READY / COUNTDOWN / REVIEW */
         <>
           {/* Camera Live View Container — Larger frame */}
-          <div className="relative w-full max-w-2xl aspect-[16/10] neo-box border-2 bg-[#1f1f27] overflow-hidden flex items-center justify-center shadow-[0_8px_0_#202030]">
+          <div className="relative w-full max-w-2xl aspect-16/10 neo-box border-2 bg-[#1f1f27] overflow-hidden flex items-center justify-center shadow-[0_8px_0_#202030]">
 
             {/* Flash Effect Layer */}
             {showFlash && (
