@@ -18,6 +18,16 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
   const [gifError, setGifError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Helper to load image and extract true aspect ratio
+  const getImageDimensions = (src: string): Promise<{ width: number; height: number }> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth || 640, height: img.naturalHeight || 480 });
+      img.onerror = () => resolve({ width: 640, height: 480 });
+      img.src = src;
+    });
+  };
+
   // Trigger celebration confetti on mount
   useEffect(() => {
     confetti({
@@ -27,11 +37,17 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
       colors: ['#8e36ff', '#f8d22a', '#f28df8', '#c9a8ff'],
     });
 
-    // Generate Animated GIF asynchronously
+    // Generate Animated GIF asynchronously keeping natural aspect ratio
     let isMounted = true;
     const generateGif = async () => {
       setIsGeneratingGif(true);
-      const res = await createAnimatedGif(capturedPhotos, 0.45, 400, 300);
+      
+      // Calculate true aspect ratio from first captured photo
+      const dims = await getImageDimensions(capturedPhotos[0]);
+      const targetWidth = 480;
+      const targetHeight = Math.round(targetWidth * (dims.height / dims.width));
+
+      const res = await createAnimatedGif(capturedPhotos, 0.45, targetWidth, targetHeight);
       if (isMounted) {
         if (res.success && res.gifUrl) {
           setGifUrl(res.gifUrl);
@@ -138,7 +154,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
             </span>
           </div>
 
-          <div className="w-full aspect-[4/3] max-h-[380px] rounded-xl border-2 border-[#202030] bg-[#faf8ff] flex items-center justify-center overflow-hidden relative">
+          <div className="w-full min-h-[250px] max-h-[380px] rounded-xl border-2 border-[#202030] bg-[#faf8ff] flex items-center justify-center overflow-hidden relative p-2">
             {isGeneratingGif ? (
               <div className="flex flex-col items-center gap-2 p-4 text-center">
                 <RefreshCw className="w-8 h-8 text-[#8e36ff] animate-spin" />
@@ -150,7 +166,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
               <img
                 src={gifUrl}
                 alt="Animated Photobooth GIF"
-                className="w-full h-full object-cover rounded-lg"
+                className="max-h-[360px] w-auto h-auto object-contain rounded-lg shadow-md mx-auto"
               />
             ) : (
               <span className="text-xs text-[#ef4444] font-bold p-4 text-center">
