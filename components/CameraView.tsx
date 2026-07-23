@@ -244,12 +244,9 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
 
             {/* Countdown Overlay */}
             {countdown !== null && (
-              <div className="absolute inset-0 z-30 bg-[#1f1f27]/50 backdrop-blur-xs flex flex-col items-center justify-center pointer-events-none">
+              <div className="absolute inset-0 z-30 bg-transparent flex flex-col items-center justify-center pointer-events-none">
                 <span className="text-8xl font-black font-chillax text-[#f8d22a] drop-shadow-[3px_3px_0px_#202030] animate-bounce">
                   {countdown}
-                </span>
-                <span className="text-lg font-bold text-white mt-3 bg-[#8e36ff] px-5 py-1.5 rounded-full border-2 border-[#202030]">
-                  Pose #{effectivePoseNumber} - Bersiap!
                 </span>
               </div>
             )}

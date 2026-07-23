@@ -1,17 +1,35 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { Volume2, VolumeX, Tag, Camera, RotateCcw, HelpCircle, Gamepad2 } from 'lucide-react';
-import { soundFx } from '@/lib/soundEffects';
+import React, { useState } from "react";
+import {
+  Volume2,
+  VolumeX,
+  Tag,
+  Camera,
+  RotateCcw,
+  HelpCircle,
+  Gamepad2,
+} from "lucide-react";
+import { soundFx } from "@/lib/soundEffects";
 
 interface ArcadeCabinetProps {
   children: React.ReactNode;
-  step: 'IDLE' | 'CAMERA_SETUP' | 'COUNTDOWN_CAPTURE' | 'FRAME_COMPOSITOR' | 'RESULT';
+  step:
+    | "IDLE"
+    | "CAMERA_SETUP"
+    | "COUNTDOWN_CAPTURE"
+    | "FRAME_COMPOSITOR"
+    | "RESULT";
   onInsertCoin: () => void;
   onReset: () => void;
 }
 
-export default function ArcadeCabinet({ children, step, onInsertCoin, onReset }: ArcadeCabinetProps) {
+export default function ArcadeCabinet({
+  children,
+  step,
+  onInsertCoin,
+  onReset,
+}: ArcadeCabinetProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [showPriceList, setShowPriceList] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
@@ -28,20 +46,22 @@ export default function ArcadeCabinet({ children, step, onInsertCoin, onReset }:
 
   return (
     <div className="relative min-h-screen bg-[#f5f5f5] bg-grid text-[#202030] flex flex-col items-center justify-between p-3 md:p-6 select-none overflow-x-hidden">
-      
       {/* Main Arcade Frame Container */}
       <div className="w-full max-w-4xl neo-box bg-[#ffffff] overflow-hidden flex flex-col z-10 my-auto">
-        
         {/* Clean Navbar Header */}
         <div className="w-full border-b-2 border-[#202030] p-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-4 bg-[#ffffff]">
           <div className="flex items-center gap-3">
-            <Gamepad2 className="w-8 h-8 text-[#8e36ff]" />
+            <img
+              src="/medkom.png"
+              alt="Medkom Logo"
+              className="w-10 h-10 object-contain"
+            />
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-wider font-chillax text-[#202030]">
+              <h1 className="text-2xl md:text-3xl font-extrabold font-chillax text-[#202030]">
                 SNAPKOMS
               </h1>
               <p className="text-xs text-[#5c5c68] font-medium tracking-wide">
-                Pengalaman Photobooth Modern
+                Photobooth Medkom BEM Unsoed
               </p>
             </div>
           </div>
@@ -52,7 +72,7 @@ export default function ArcadeCabinet({ children, step, onInsertCoin, onReset }:
               <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] animate-ping" />
               SIAP!
             </div>
-            
+
             {/* Price List Button */}
             <button
               onClick={() => {
@@ -72,7 +92,11 @@ export default function ArcadeCabinet({ children, step, onInsertCoin, onReset }:
                 className="neo-btn p-1.5"
                 title="Toggle Sound"
               >
-                {isMuted ? <VolumeX className="w-4 h-4 text-[#ef4444]" /> : <Volume2 className="w-4 h-4 text-[#8e36ff]" />}
+                {isMuted ? (
+                  <VolumeX className="w-4 h-4 text-[#ef4444]" />
+                ) : (
+                  <Volume2 className="w-4 h-4 text-[#8e36ff]" />
+                )}
               </button>
               <button
                 onClick={() => setShowHelpModal(true)}
@@ -92,21 +116,20 @@ export default function ArcadeCabinet({ children, step, onInsertCoin, onReset }:
 
         {/* Bottom Control Arcade Deck */}
         <div className="bg-[#ffffff] border-t-2 border-[#202030] p-4 md:p-5 flex flex-wrap items-center justify-between gap-4">
-          
           {/* Machine Info / Status */}
           <div className="flex items-center gap-3">
             <span className="text-xs font-bold uppercase tracking-wider text-[#202030]">
-              {step === 'IDLE' && 'Standby - Tekan tombol untuk mulai'}
-              {step === 'CAMERA_SETUP' && 'Siap pose - Sesuaikan kamera'}
-              {step === 'COUNTDOWN_CAPTURE' && 'Mengambil foto... Bersiap!'}
-              {step === 'FRAME_COMPOSITOR' && 'Sesuaikan bingkai dan stiker'}
-              {step === 'RESULT' && 'Photo strip dan GIF siap diunduh'}
+              {step === "IDLE" && "Standby - Tekan tombol untuk mulai"}
+              {step === "CAMERA_SETUP" && "Siap pose - Sesuaikan kamera"}
+              {step === "COUNTDOWN_CAPTURE" && "Mengambil foto... Bersiap!"}
+              {step === "FRAME_COMPOSITOR" && "Sesuaikan bingkai dan stiker"}
+              {step === "RESULT" && "Photo strip dan GIF siap diunduh"}
             </span>
           </div>
 
           {/* Interactive Action Slot Controls */}
           <div className="flex items-center gap-3">
-            {step === 'IDLE' ? (
+            {step === "IDLE" ? (
               <button
                 onClick={handleCoinClick}
                 className="neo-btn-primary px-6 py-2.5 font-extrabold text-sm md:text-base flex items-center gap-2 animate-pulse-glow"
@@ -128,7 +151,6 @@ export default function ArcadeCabinet({ children, step, onInsertCoin, onReset }:
             )}
           </div>
         </div>
-
       </div>
 
       {/* PRICE LIST MODAL */}
@@ -141,12 +163,16 @@ export default function ArcadeCabinet({ children, step, onInsertCoin, onReset }:
             >
               TUTUP
             </button>
-            
+
             <div className="flex items-center gap-2 mb-4 border-b-2 border-[#202030] pb-3">
               <Tag className="w-7 h-7 text-[#8e36ff]" />
               <div>
-                <h2 className="text-2xl font-bold font-chillax text-[#8e36ff]">DAFTAR HARGA</h2>
-                <p className="text-xs text-[#5c5c68]">Layanan Photobooth Snapkoms</p>
+                <h2 className="text-2xl font-bold font-chillax text-[#8e36ff]">
+                  DAFTAR HARGA
+                </h2>
+                <p className="text-xs text-[#5c5c68]">
+                  Layanan Photobooth Snapkoms
+                </p>
               </div>
             </div>
 
@@ -154,25 +180,39 @@ export default function ArcadeCabinet({ children, step, onInsertCoin, onReset }:
               <div className="neo-box-yellow p-3 flex items-center justify-between">
                 <div>
                   <div className="font-bold text-sm">Strip Klasik 4-Pose</div>
-                  <div className="text-xs text-[#5c5c68]">4 pose + Bingkai Kustom</div>
+                  <div className="text-xs text-[#5c5c68]">
+                    4 pose + Bingkai Kustom
+                  </div>
                 </div>
-                <div className="font-extrabold text-[#ef4444] text-lg">GRATIS!</div>
+                <div className="font-extrabold text-[#ef4444] text-lg">
+                  GRATIS!
+                </div>
               </div>
 
               <div className="neo-box-pink p-3 flex items-center justify-between">
                 <div>
                   <div className="font-bold text-sm">GIF Animasi Looping</div>
-                  <div className="text-xs text-[#5c5c68]">Ekspor animasi boomerang</div>
+                  <div className="text-xs text-[#5c5c68]">
+                    Ekspor animasi boomerang
+                  </div>
                 </div>
-                <div className="font-extrabold text-[#8e36ff] text-lg">GRATIS!</div>
+                <div className="font-extrabold text-[#8e36ff] text-lg">
+                  GRATIS!
+                </div>
               </div>
 
               <div className="neo-box p-3 flex items-center justify-between bg-[#faf8ff]">
                 <div>
-                  <div className="font-bold text-sm">Stiker Doodle Tanpa Batas</div>
-                  <div className="text-xs text-[#5c5c68]">Bintang, hati, permen & lencana</div>
+                  <div className="font-bold text-sm">
+                    Stiker Doodle Tanpa Batas
+                  </div>
+                  <div className="text-xs text-[#5c5c68]">
+                    Bintang, hati, permen & lencana
+                  </div>
                 </div>
-                <div className="font-extrabold text-[#10B981] text-lg">TERMASUK</div>
+                <div className="font-extrabold text-[#10B981] text-lg">
+                  TERMASUK
+                </div>
               </div>
             </div>
 
@@ -208,11 +248,16 @@ export default function ArcadeCabinet({ children, step, onInsertCoin, onReset }:
             </h2>
 
             <ol className="list-decimal list-inside space-y-2 text-sm font-sans text-[#202030] border-t-2 border-[#202030] pt-3">
-              <li>Klik tombol <strong>MASUKKAN KOIN</strong> untuk mengaktifkan kamera.</li>
+              <li>
+                Klik tombol <strong>MASUKKAN KOIN</strong> untuk mengaktifkan
+                kamera.
+              </li>
               <li>Izinkan akses browser ke webcam Anda.</li>
               <li>Pilih mode 3 pose atau 4 pose foto.</li>
               <li>Hitungan mundur akan berjalan otomatis setiap sesi pose.</li>
-              <li>Pilih template bingkai favorit dan beri stiker doodle lucu.</li>
+              <li>
+                Pilih template bingkai favorit dan beri stiker doodle lucu.
+              </li>
               <li>Unduh hasil akhir berupa Photo Strip dan Animasi GIF.</li>
             </ol>
 
@@ -228,7 +273,8 @@ export default function ArcadeCabinet({ children, step, onInsertCoin, onReset }:
 
       {/* Footer Branding */}
       <footer className="mt-4 text-center text-xs text-[#5c5c68] font-medium">
-        Designed for <strong className="text-[#8e36ff]">Snapkoms Arcade</strong> • Powered by Next.js & React
+        Designed for <strong className="text-[#8e36ff]">Snapkoms Arcade</strong>{" "}
+        • Powered by Next.js & React
       </footer>
     </div>
   );
