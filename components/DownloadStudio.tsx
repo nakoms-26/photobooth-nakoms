@@ -5,6 +5,8 @@ import confetti from 'canvas-confetti';
 import { Download, Film, Share2, Sparkles, RotateCcw, Check, RefreshCw, Image as ImageIcon } from 'lucide-react';
 import { createAnimatedGif } from '@/lib/gifGenerator';
 import { soundFx } from '@/lib/soundEffects';
+import { QRCodeSVG } from 'qrcode.react';
+import { uploadAsset } from '@/lib/uploadApi';
 
 interface DownloadStudioProps {
   pngDataUrl: string;
@@ -17,6 +19,10 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
   const [isGeneratingGif, setIsGeneratingGif] = useState<boolean>(true);
   const [gifError, setGifError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [pngUploadUrl, setPngUploadUrl] = useState<string | null>(null);
+  const [gifUploadUrl, setGifUploadUrl] = useState<string | null>(null);
+  const [isUploadingPng, setIsUploadingPng] = useState<boolean>(true);
+  const [isUploadingGif, setIsUploadingGif] = useState<boolean>(false);
 
   // Helper to load image and extract true aspect ratio
   const getImageDimensions = (src: string): Promise<{ width: number; height: number }> => {
@@ -51,6 +57,14 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
       if (isMounted) {
         if (res.success && res.gifUrl) {
           setGifUrl(res.gifUrl);
+          // Upload GIF in background
+          setIsUploadingGif(true);
+          uploadAsset(res.gifUrl, 'gif').then((url) => {
+            if (isMounted && url) {
+              setGifUploadUrl(url);
+            }
+            if (isMounted) setIsUploadingGif(false);
+          });
         } else {
           setGifError(res.error || 'Gagal merender GIF');
         }
@@ -61,11 +75,20 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
     if (capturedPhotos.length > 0) {
       generateGif();
     }
+    
+    // Upload PNG in background
+    setIsUploadingPng(true);
+    uploadAsset(pngDataUrl, 'png').then((url) => {
+      if (isMounted && url) {
+        setPngUploadUrl(url);
+      }
+      if (isMounted) setIsUploadingPng(false);
+    });
 
     return () => {
       isMounted = false;
     };
-  }, [capturedPhotos]);
+  }, [capturedPhotos, pngDataUrl]);
 
   const handleDownloadPng = () => {
     soundFx.playClickSound();
@@ -140,6 +163,20 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
             <Download className="w-4 h-4" />
             DOWNLOAD PNG STRIP
           </button>
+
+          {isUploadingPng ? (
+            <div className="w-full flex items-center justify-center gap-2 py-2 text-[#8e36ff]">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span className="text-xs font-bold font-chillax">Menyiapkan QR Code...</span>
+            </div>
+          ) : pngUploadUrl ? (
+            <div className="w-full mt-2 flex flex-col items-center gap-2 border-t-2 border-[#202030] pt-4">
+              <span className="text-[10px] font-bold text-[#5c5c68]">SCAN UNTUK DOWNLOAD DI HP</span>
+              <div className="p-2 bg-white border-2 border-[#202030] rounded-lg shadow-sm">
+                <QRCodeSVG value={pngUploadUrl} size={90} />
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {/* Animated GIF Boomerang Card */}
@@ -183,6 +220,20 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
             <Film className="w-4 h-4" />
             DOWNLOAD GIF ANIMATED
           </button>
+
+          {isUploadingGif ? (
+            <div className="w-full flex items-center justify-center gap-2 py-2 text-[#8e36ff]">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span className="text-xs font-bold font-chillax">Menyiapkan QR Code...</span>
+            </div>
+          ) : gifUploadUrl ? (
+            <div className="w-full mt-2 flex flex-col items-center gap-2 border-t-2 border-[#202030] pt-4">
+              <span className="text-[10px] font-bold text-[#5c5c68]">SCAN UNTUK DOWNLOAD DI HP</span>
+              <div className="p-2 bg-white border-2 border-[#202030] rounded-lg shadow-sm">
+                <QRCodeSVG value={gifUploadUrl} size={90} />
+              </div>
+            </div>
+          ) : null}
         </div>
 
       </div>

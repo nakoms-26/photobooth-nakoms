@@ -85,7 +85,6 @@
 
 ## 8. Rencana Pengembangan Masa Depan (Backlog)
 
-- Integrasi pengunggahan hasil foto ke server khusus (`asset.bem-unsoed.com` menggunakan endpoint `upload.php`) sebagai penyimpanan eksternal.
-- Penggunaan database MySQL dengan ORM untuk pengelolaan basis data aplikasi.
+- Integrasi pengunggahan hasil foto secara *stateless* (tanpa memerlukan database) ke server khusus (`asset.bem-unsoed.com` menggunakan endpoint `upload.php`). Aplikasi akan langsung menerima tautan (link) publik dari respons unggahan untuk keperluan berbagi atau pembuatan kode QR.
 - Pembuatan kode QR untuk pengunduhan seluler yang cepat jika dimainkan pada pengaturan kios (kiosk) fisik.
 - Konfigurasi tanda air (watermark) kustom untuk acara-acara tertentu.
