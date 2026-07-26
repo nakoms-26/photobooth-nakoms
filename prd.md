@@ -85,6 +85,7 @@
 
 ## 8. Rencana Pengembangan Masa Depan (Backlog)
 
-- Integrasi dengan penyimpanan cloud eksternal atau API media sosial untuk berbagi secara langsung.
+- Integrasi pengunggahan hasil foto ke server khusus (`asset.bem-unsoed.com` menggunakan endpoint `upload.php`) sebagai penyimpanan eksternal.
+- Penggunaan database MySQL dengan ORM untuk pengelolaan basis data aplikasi.
 - Pembuatan kode QR untuk pengunduhan seluler yang cepat jika dimainkan pada pengaturan kios (kiosk) fisik.
 - Konfigurasi tanda air (watermark) kustom untuk acara-acara tertentu.
