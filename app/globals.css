@@ -1,33 +1,96 @@
 @import url('https://api.fontshare.com/v2/css?f[]=chillax@300,400,500,600,700&display=swap');
 @import "tailwindcss";
 
-:root {
-  --purple-primary: #8e36ff;
-  --purple-dark: #7f2cf1;
-  --purple-shadow: #1d102f;
-  --purple-light: #c9a8ff;
-  --purple-bg: #faf8ff;
-  --yellow-accent: #f8d22a;
-  --yellow-shadow: #17171f;
-  --pink-accent: #f28df8;
-  --pink-light: #e77bef;
-  --dark: #202030;
-  --dark-text: #1f1f27;
-  --dark-muted: #2c2c36;
-  --gray-text: #5c5c68;
-  --bg-page: #f5f5f5;
-  --bg-card: #ffffff;
-  --border-color: #202030;
-  --ring-purple: rgba(142, 54, 255, 0.35);
+@theme {
+  /* Brand Colors */
+  --color-primary: #10069f;
+  --color-secondary: #fae03c;
 
-  --background: #f5f5f5;
-  --foreground: #1f1f27;
+  /* Supporting Colors */
+  --color-danger: #dd0000;
+  --color-orange: #ff7900;
+  --color-sky: #008dd1;
+  --color-navy: #001f67;
+
+  /* Neutral */
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  /* Gray Scale */
+  --color-gray-50: #f8fafc;
+  --color-gray-100: #f1f5f9;
+  --color-gray-200: #e2e8f0;
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #64748b;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1e293b;
+  --color-gray-900: #0f172a;
+
+  /* Semantic */
+  --color-background: var(--color-white);
+  --color-surface: #f8fafc;
+  --color-text: var(--color-gray-900);
+  --color-text-secondary: var(--color-gray-600);
+  --color-text-muted: var(--color-gray-400);
+  --color-border: var(--color-gray-200);
+
+  /* State */
+  --color-success: #16a34a;
+  --color-warning: var(--color-orange);
+  --color-info: var(--color-sky);
+  --color-error: var(--color-danger);
+}
+
+:root {
+  /* Brand Colors */
+  --color-primary: #10069f;
+  --color-secondary: #fae03c;
+
+  /* Supporting Colors */
+  --color-danger: #dd0000;
+  --color-orange: #ff7900;
+  --color-sky: #008dd1;
+  --color-navy: #001f67;
+
+  /* Neutral */
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  /* Gray Scale */
+  --color-gray-50: #f8fafc;
+  --color-gray-100: #f1f5f9;
+  --color-gray-200: #e2e8f0;
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #64748b;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1e293b;
+  --color-gray-900: #0f172a;
+
+  /* Semantic */
+  --color-background: var(--color-white);
+  --color-surface: #f8fafc;
+
+  --color-text: var(--color-gray-900);
+  --color-text-secondary: var(--color-gray-600);
+  --color-text-muted: var(--color-gray-400);
+
+  --color-border: var(--color-gray-200);
+
+  /* State */
+  --color-success: #16a34a;
+  --color-warning: var(--color-orange);
+  --color-info: var(--color-sky);
+  --color-error: var(--color-danger);
 }
 
 /* Force light mode always */
 html, body {
-  background-color: var(--bg-page) !important;
-  color: var(--dark-text) !important;
+  background-color: var(--color-background) !important;
+  color: var(--color-text) !important;
   font-family: 'Chillax', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   margin: 0;
   padding: 0;
@@ -36,7 +99,7 @@ html, body {
 
 /* Subtle grid background pattern (Jepreto style) */
 .bg-grid {
-  background-color: var(--bg-page);
+  background-color: var(--color-background);
   background-image:
     linear-gradient(to right, #00000010 1px, transparent 1px),
     linear-gradient(to bottom, #00000010 1px, transparent 1px);
@@ -45,43 +108,43 @@ html, body {
 
 /* Neubrutalist Card (Jepreto style) */
 .neo-box {
-  background-color: var(--bg-card);
-  border: 2px solid var(--border-color);
-  box-shadow: 0 6px 0 var(--border-color);
+  background-color: var(--color-surface);
+  border: 2px solid var(--color-black);
+  box-shadow: 0 6px 0 var(--color-black);
   border-radius: 16px;
   transition: all 0.15s ease-in-out;
 }
 
 .neo-box-purple {
-  background-color: var(--purple-primary);
-  color: #ffffff;
-  border: 2px solid var(--border-color);
-  box-shadow: 0 6px 0 var(--border-color);
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border: 2px solid var(--color-black);
+  box-shadow: 0 6px 0 var(--color-black);
   border-radius: 16px;
 }
 
 .neo-box-yellow {
-  background-color: var(--yellow-accent);
-  color: var(--dark);
-  border: 2px solid var(--border-color);
-  box-shadow: 0 6px 0 var(--border-color);
+  background-color: var(--color-secondary);
+  color: var(--color-text);
+  border: 2px solid var(--color-black);
+  box-shadow: 0 6px 0 var(--color-black);
   border-radius: 16px;
 }
 
 .neo-box-pink {
-  background-color: var(--pink-accent);
-  color: var(--dark);
-  border: 2px solid var(--border-color);
-  box-shadow: 0 6px 0 var(--border-color);
+  background-color: var(--color-orange);
+  color: var(--color-text);
+  border: 2px solid var(--color-black);
+  box-shadow: 0 6px 0 var(--color-black);
   border-radius: 16px;
 }
 
 /* Neubrutalist Button — Jepreto press-down style */
 .neo-btn {
-  background-color: var(--bg-card);
-  color: var(--dark);
-  border: 2px solid var(--border-color);
-  box-shadow: 0 4px 0 var(--border-color);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: 2px solid var(--color-black);
+  box-shadow: 0 4px 0 var(--color-black);
   border-radius: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -91,7 +154,7 @@ html, body {
 
 .neo-btn:hover {
   transform: translateY(1px);
-  box-shadow: 0 3px 0 var(--border-color);
+  box-shadow: 0 3px 0 var(--color-black);
 }
 
 .neo-btn:active {
@@ -101,10 +164,10 @@ html, body {
 
 /* Primary CTA — Purple */
 .neo-btn-primary {
-  background-color: var(--purple-primary);
-  color: #ffffff;
-  border: 2px solid var(--border-color);
-  box-shadow: 0 6px 0 var(--purple-shadow);
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border: 2px solid var(--color-black);
+  box-shadow: 0 6px 0 var(--color-black);
   border-radius: 9999px;
   font-weight: 700;
   cursor: pointer;
@@ -113,9 +176,9 @@ html, body {
 }
 
 .neo-btn-primary:hover {
-  background-color: var(--purple-dark);
+  background-color: var(--color-navy);
   transform: translateY(2px);
-  box-shadow: 0 4px 0 var(--purple-shadow);
+  box-shadow: 0 4px 0 var(--color-black);
 }
 
 .neo-btn-primary:active {
@@ -125,10 +188,10 @@ html, body {
 
 /* Secondary CTA — Yellow */
 .neo-btn-yellow {
-  background-color: var(--yellow-accent);
-  color: var(--dark);
-  border: 2px solid var(--border-color);
-  box-shadow: 0 6px 0 var(--yellow-shadow);
+  background-color: var(--color-secondary);
+  color: var(--color-text);
+  border: 2px solid var(--color-black);
+  box-shadow: 0 6px 0 var(--color-black);
   border-radius: 9999px;
   font-weight: 700;
   cursor: pointer;
@@ -138,7 +201,7 @@ html, body {
 
 .neo-btn-yellow:hover {
   transform: translateY(2px);
-  box-shadow: 0 4px 0 var(--yellow-shadow);
+  box-shadow: 0 4px 0 var(--color-black);
 }
 
 .neo-btn-yellow:active {
@@ -148,10 +211,10 @@ html, body {
 
 /* Danger / Red CTA */
 .neo-btn-danger {
-  background-color: #ef4444;
-  color: #ffffff;
-  border: 2px solid var(--border-color);
-  box-shadow: 0 4px 0 var(--border-color);
+  background-color: var(--color-danger);
+  color: var(--color-white);
+  border: 2px solid var(--color-black);
+  box-shadow: 0 4px 0 var(--color-black);
   border-radius: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -161,7 +224,7 @@ html, body {
 
 .neo-btn-danger:hover {
   transform: translateY(1px);
-  box-shadow: 0 3px 0 var(--border-color);
+  box-shadow: 0 3px 0 var(--color-black);
 }
 
 .neo-btn-danger:active {
@@ -204,8 +267,8 @@ html, body {
 }
 
 @keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(142, 54, 255, 0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(142, 54, 255, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 6, 159, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(16, 6, 159, 0); }
 }
 
 .animate-pulse-glow {
@@ -215,12 +278,13 @@ html, body {
 /* Custom scrollbar — Jepreto purple */
 ::-webkit-scrollbar {
   width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg-page);
+  background: var(--color-background);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--purple-primary);
-  border: 2px solid var(--border-color);
+  background: var(--color-primary);
+  border: 2px solid var(--color-black);
   border-radius: 8px;
 }

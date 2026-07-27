@@ -21,9 +21,10 @@ export type PhotoFilter = 'normal' | 'bw' | 'vintage' | 'pop' | 'warm';
 interface FrameCompositorProps {
   photos: string[];
   onCompositeGenerated: (pngDataUrl: string) => void;
+  actions?: React.ReactNode;
 }
 
-export default function FrameCompositor({ photos, onCompositeGenerated }: FrameCompositorProps) {
+export default function FrameCompositor({ photos, onCompositeGenerated, actions }: FrameCompositorProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [selectedTemplate, setSelectedTemplate] = useState<FrameTemplate>(FRAME_TEMPLATES[0]);
@@ -129,9 +130,18 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Canvas dimensions (Standard photobooth strip aspect ratio)
     const CANVAS_WIDTH = 480;
-    const CANVAS_HEIGHT = selectedTemplate.photoCount === 4 ? 1200 : 960;
+    const photoMarginX = 35;
+    const photoWidth = CANVAS_WIDTH - (photoMarginX * 2);
+    const photoHeight = photoWidth / (16 / 9); // Maintain 16:9 aspect ratio
+    const photoSpacing = selectedTemplate.photoCount === 4 ? 18 : 24;
+    
+    const headerHeight = 90;
+    const footerHeight = 85;
+    const startY = headerHeight + 15;
+
+    // Dynamically calculate canvas height based on slots
+    const CANVAS_HEIGHT = startY + (photoHeight * selectedTemplate.photoCount) + (photoSpacing * (selectedTemplate.photoCount - 1)) + footerHeight;
 
     canvas.width = CANVAS_WIDTH;
     canvas.height = CANVAS_HEIGHT;
@@ -146,25 +156,18 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
     ctx.strokeRect(4, 4, CANVAS_WIDTH - 8, CANVAS_HEIGHT - 8);
 
     // 3. Draw Header Title
-    const headerHeight = 90;
     ctx.save();
     ctx.font = 'bold 36px "Fredoka", sans-serif';
     ctx.fillStyle = selectedTemplate.textColor;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.shadowColor = '#202030';
+    ctx.shadowColor = '#000000';
     ctx.shadowOffsetX = 3;
     ctx.shadowOffsetY = 3;
     ctx.fillText(selectedTemplate.headerText, CANVAS_WIDTH / 2, 50);
     ctx.restore();
 
     // 4. Calculate Photo Slot Dimensions
-    const photoMarginX = 35;
-    const photoWidth = CANVAS_WIDTH - (photoMarginX * 2);
-    const photoHeight = selectedTemplate.photoCount === 4 ? 205 : 225;
-    const startY = headerHeight + 15;
-    const photoSpacing = selectedTemplate.photoCount === 4 ? 18 : 22;
-
     const photoRects: Array<{ x: number; y: number; w: number; h: number }> = [];
 
     // 5. Render Photos with Filters
@@ -219,12 +222,12 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
     }
 
     // 7. Draw Footer Watermark Text & Date
-    const footerY = CANVAS_HEIGHT - 65;
+    const footerY = CANVAS_HEIGHT - 55;
     ctx.save();
     ctx.font = 'bold 20px "Fredoka", sans-serif';
     ctx.fillStyle = selectedTemplate.textColor;
     ctx.textAlign = 'center';
-    ctx.shadowColor = '#202030';
+    ctx.shadowColor = '#000000';
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 2;
     ctx.fillText(customText, CANVAS_WIDTH / 2, footerY);
@@ -244,7 +247,7 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
 
       // Selection outline for active sticker
       if (stk.uid === selectedStickerUid) {
-        ctx.strokeStyle = '#f8d22a';
+        ctx.strokeStyle = '#fae03c'; // Secondary Yellow
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.arc(0, 0, 32, 0, Math.PI * 2);
@@ -295,31 +298,31 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
   };
 
   return (
-    <div className="w-full flex flex-col lg:flex-row items-start justify-center gap-6">
+    <div className="w-full flex flex-col lg:flex-row items-start lg:justify-center gap-8 xl:gap-12">
       
       {/* Live Canvas Preview */}
-      <div className="neo-box rounded-2xl p-3 bg-[#ffffff] flex flex-col items-center mx-auto">
-        <span className="text-xs font-extrabold uppercase text-[#8e36ff] mb-2 font-chillax">
+      <div className="neo-box rounded-2xl p-3 bg-surface flex flex-col items-center">
+        <span className="text-xs font-extrabold uppercase text-primary mb-2 font-chillax">
           LIVE PHOTO STRIP PREVIEW (PNG)
         </span>
-        <div className="max-h-[580px] overflow-y-auto border-2 border-[#202030] rounded-xl p-1 bg-[#faf8ff]">
+        <div className="border-2 border-black rounded-xl p-1 bg-surface">
           <canvas
             ref={canvasRef}
-            className="w-[280px] md:w-[320px] h-auto rounded-lg shadow-md"
+            className="h-[60vh] md:h-[75vh] w-auto object-contain rounded-lg shadow-md"
           />
         </div>
       </div>
 
       {/* Frame Compositor Customizer Controls */}
-      <div className="w-full max-w-md flex flex-col gap-4">
+      <div className="w-full lg:flex-1 max-w-[800px] flex flex-col gap-4">
         
         {/* 1. Select Frame Template */}
-        <div className="neo-box rounded-2xl p-3 bg-[#ffffff]">
-          <label className="text-xs font-extrabold uppercase text-[#8e36ff] mb-2 font-chillax flex items-center gap-1">
-            <Palette className="w-4 h-4 text-[#f8d22a]" />
+        <div className="neo-box rounded-2xl p-4 bg-surface">
+          <label className="text-xs font-extrabold uppercase text-primary mb-3 font-chillax flex items-center gap-2">
+            <Palette className="w-5 h-5 text-secondary" />
             1. PILIH TEMPLATE FRAME BINGKAI
           </label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex overflow-x-auto gap-2 pb-2 custom-scrollbar">
             {FRAME_TEMPLATES.map((tmpl) => (
               <button
                 key={tmpl.id}
@@ -327,24 +330,24 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
                   soundFx.playClickSound();
                   setSelectedTemplate(tmpl);
                 }}
-                className={`neo-btn p-2 text-xs text-left font-bold flex flex-col justify-between ${
-                  selectedTemplate.id === tmpl.id ? 'bg-[#8e36ff] text-white ring-2 ring-[#8e36ff]/35' : 'bg-[#faf8ff]'
+                className={`flex-none min-w-[140px] neo-btn p-3 text-xs text-left font-bold flex flex-col justify-between transition-colors ${
+                  selectedTemplate.id === tmpl.id ? 'bg-primary text-white border-black' : 'bg-surface hover:bg-gray-100'
                 }`}
               >
-                <span>{tmpl.name}</span>
-                <span className="text-[10px] text-gray-600 font-normal">{tmpl.photoCount} Poses</span>
+                <span className="whitespace-nowrap">{tmpl.name}</span>
+                <span className={`text-[10px] font-normal ${selectedTemplate.id === tmpl.id ? 'text-gray-300' : 'text-gray-500'}`}>{tmpl.photoCount} Poses</span>
               </button>
             ))}
           </div>
         </div>
 
         {/* 2. Photo Color Filters */}
-        <div className="neo-box rounded-2xl p-3 bg-[#ffffff]">
-          <label className="text-xs font-extrabold uppercase text-[#8e36ff] mb-2 font-chillax flex items-center gap-1">
-            <Wand2 className="w-4 h-4 text-[#f28df8]" />
+        <div className="neo-box rounded-2xl p-4 bg-surface">
+          <label className="text-xs font-extrabold uppercase text-primary mb-3 font-chillax flex items-center gap-2">
+            <Wand2 className="w-5 h-5 text-orange" />
             2. FILTER WARNA FOTO
           </label>
-          <div className="grid grid-cols-5 gap-1.5">
+          <div className="grid grid-cols-5 gap-2">
             {[
               { id: 'normal', label: 'Normal' },
               { id: 'vintage', label: 'Retro' },
@@ -358,8 +361,8 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
                   soundFx.playClickSound();
                   setActiveFilter(flt.id as PhotoFilter);
                 }}
-                className={`neo-btn py-1.5 text-[11px] font-bold ${
-                  activeFilter === flt.id ? 'bg-[#8e36ff] text-white' : 'bg-[#faf8ff]'
+                className={`neo-btn py-2 text-[11px] font-bold transition-colors ${
+                  activeFilter === flt.id ? 'bg-primary text-white border-black' : 'bg-surface hover:bg-gray-100'
                 }`}
               >
                 {flt.label}
@@ -368,49 +371,58 @@ export default function FrameCompositor({ photos, onCompositeGenerated }: FrameC
           </div>
         </div>
 
-        {/* 3. Custom Text / Watermark */}
-        <div className="neo-box rounded-2xl p-3 bg-[#ffffff]">
-          <label className="text-xs font-extrabold uppercase text-[#8e36ff] mb-1 font-chillax flex items-center gap-1">
-            <Type className="w-4 h-4 text-[#ef4444]" />
-            3. TEKS PESAN PESONA (WATERMARK)
-          </label>
-          <input
-            type="text"
-            value={customText}
-            onChange={(e) => setCustomText(e.target.value)}
-            maxLength={35}
-            className="w-full neo-box rounded-2xl p-2 text-xs font-bold bg-[#faf8ff] focus:outline-none focus:ring-2 focus:ring-[#8e36ff]"
-            placeholder="Ketik watermark di sini..."
-          />
-        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* 3. Custom Text / Watermark */}
+          <div className="neo-box rounded-2xl p-4 bg-surface flex flex-col justify-center">
+            <label className="text-xs font-extrabold uppercase text-primary mb-3 font-chillax flex items-center gap-2">
+              <Type className="w-5 h-5 text-error" />
+              3. TEKS PESAN PESONA (WATERMARK)
+            </label>
+            <input
+              type="text"
+              value={customText}
+              onChange={(e) => setCustomText(e.target.value)}
+              maxLength={35}
+              className="w-full neo-box rounded-2xl p-3 text-sm font-bold bg-surface focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="Ketik watermark di sini..."
+            />
+          </div>
 
-        {/* 4. Interactive Sticker Picker */}
-        <StickerPicker onAddSticker={handleAddSticker} />
+          {/* 4. Interactive Sticker Picker */}
+          <StickerPicker onAddSticker={handleAddSticker} />
+        </div>
 
         {/* Sticker Controls Bar (if stickers added) */}
         {stickers.length > 0 && (
-          <div className="neo-box rounded-2xl p-2 bg-[#faf8ff] flex items-center justify-between text-xs">
-            <span className="font-bold text-[#202030]">Stiker Terpasang: {stickers.length}</span>
+          <div className="neo-box rounded-2xl p-3 bg-surface flex items-center justify-between text-xs">
+            <span className="font-bold text-text">Stiker Terpasang: {stickers.length}</span>
             <div className="flex items-center gap-2">
               {selectedStickerUid && (
                 <>
                   <button
                     onClick={() => rotateSticker(selectedStickerUid)}
-                    className="neo-btn p-1 bg-[#f8d22a] text-[#202030]"
+                    className="neo-btn p-2 bg-secondary text-black"
                     title="Putar Stiker"
                   >
-                    <RotateCw className="w-3.5 h-3.5" />
+                    <RotateCw className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => removeSticker(selectedStickerUid)}
-                    className="neo-btn p-1 bg-[#ef4444] text-white"
+                    className="neo-btn p-2 bg-error text-white"
                     title="Hapus Stiker"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Optional Actions (Simpan Button) */}
+        {actions && (
+          <div className="mt-2">
+            {actions}
           </div>
         )}
 

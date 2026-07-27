@@ -11,14 +11,14 @@ export interface StickerItem {
 }
 
 export const DOODLE_STICKERS: StickerItem[] = [
-  { id: 'star', label: 'Bintang', color: '#f8d22a', icon: 'star' },
-  { id: 'heart', label: 'Hati', color: '#f28df8', icon: 'heart' },
-  { id: 'sparkles', label: 'Sparkles', color: '#8e36ff', icon: 'sparkles' },
-  { id: 'joystick', label: 'Joystick', color: '#ef4444', icon: 'joystick' },
-  { id: 'crown', label: 'Mahkota', color: '#f8d22a', icon: 'crown' },
-  { id: 'lightning', label: 'Petir', color: '#f8d22a', icon: 'lightning' },
-  { id: 'gift', label: 'Pita', color: '#ef4444', icon: 'gift' },
-  { id: 'sunglasses', label: 'Kacamata', color: '#202030', icon: 'sunglasses' },
+  { id: 'star', label: 'Bintang', color: '#fae03c', icon: 'star' },
+  { id: 'heart', label: 'Hati', color: '#008dd1', icon: 'heart' },
+  { id: 'sparkles', label: 'Sparkles', color: '#10069f', icon: 'sparkles' },
+  { id: 'joystick', label: 'Joystick', color: '#dd0000', icon: 'joystick' },
+  { id: 'crown', label: 'Mahkota', color: '#fae03c', icon: 'crown' },
+  { id: 'lightning', label: 'Petir', color: '#fae03c', icon: 'lightning' },
+  { id: 'gift', label: 'Pita', color: '#dd0000', icon: 'gift' },
+  { id: 'sunglasses', label: 'Kacamata', color: '#000000', icon: 'sunglasses' },
 ];
 
 interface StickerPickerProps {
@@ -28,21 +28,21 @@ interface StickerPickerProps {
 export default function StickerPicker({ onAddSticker }: StickerPickerProps) {
   const renderIcon = (icon: StickerItem['icon']) => {
     switch (icon) {
-      case 'star': return <Star className="w-5 h-5 fill-[#f8d22a] text-[#202030]" />;
-      case 'heart': return <Heart className="w-5 h-5 fill-[#f28df8] text-[#202030]" />;
-      case 'sparkles': return <Sparkles className="w-5 h-5 text-[#8e36ff]" />;
-      case 'joystick': return <Gamepad2 className="w-5 h-5 text-[#ef4444]" />;
-      case 'crown': return <Crown className="w-5 h-5 fill-[#f8d22a] text-[#202030]" />;
-      case 'lightning': return <Zap className="w-5 h-5 fill-[#f8d22a] text-[#202030]" />;
-      case 'gift': return <Gift className="w-5 h-5 fill-[#ef4444] text-[#ffffff]" />;
-      case 'sunglasses': return <Eye className="w-5 h-5 text-[#202030]" />;
+      case 'star': return <Star className="w-5 h-5 fill-[#fae03c] text-black" />;
+      case 'heart': return <Heart className="w-5 h-5 fill-[#008dd1] text-black" />;
+      case 'sparkles': return <Sparkles className="w-5 h-5 text-primary" />;
+      case 'joystick': return <Gamepad2 className="w-5 h-5 text-danger" />;
+      case 'crown': return <Crown className="w-5 h-5 fill-[#fae03c] text-black" />;
+      case 'lightning': return <Zap className="w-5 h-5 fill-[#fae03c] text-black" />;
+      case 'gift': return <Gift className="w-5 h-5 fill-[#dd0000] text-white" />;
+      case 'sunglasses': return <Eye className="w-5 h-5 text-black" />;
     }
   };
 
   return (
-    <div className="neo-box p-3 bg-[#ffffff] w-full">
-      <div className="flex items-center gap-1.5 mb-2 font-chillax text-xs font-bold text-[#8e36ff]">
-        <Smile className="w-4 h-4 text-[#f8d22a]" />
+    <div className="neo-box p-4 bg-surface w-full rounded-2xl">
+      <div className="flex items-center gap-2 mb-3 font-chillax text-xs font-bold text-primary">
+        <Smile className="w-5 h-5 text-secondary" />
         TAMBAHKAN STIKER DOODLE (CLICK TO ADD)
       </div>
       <div className="grid grid-cols-4 gap-2">
@@ -50,7 +50,7 @@ export default function StickerPicker({ onAddSticker }: StickerPickerProps) {
           <button
             key={stk.id}
             onClick={() => onAddSticker(stk)}
-            className="neo-btn p-2 text-xs font-bold hover:bg-[#8e36ff]/10 hover:border-[#8e36ff] transition-all flex items-center justify-center gap-1.5 bg-[#faf8ff]"
+            className="neo-btn p-2 text-[11px] font-bold hover:bg-gray-100 hover:border-primary transition-all flex items-center justify-center gap-1.5 bg-surface"
             title={stk.label}
           >
             {renderIcon(stk.icon)}

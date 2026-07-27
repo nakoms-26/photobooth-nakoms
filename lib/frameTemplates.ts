@@ -15,54 +15,51 @@ export interface FrameTemplate {
 
 export const FRAME_TEMPLATES: FrameTemplate[] = [
   {
-    id: 'jepreto-purple',
-    name: 'Modern Purple',
-    description: 'Clean modern frame with purple accents',
-    bgColor: '#8e36ff',
-    borderColor: '#202030',
+    id: 'nakoms-primary',
+    name: 'Nakoms Classic',
+    description: 'Clean modern frame with primary blue accents',
+    bgColor: '#10069f',
+    borderColor: '#000000',
     textColor: '#ffffff',
-    accentColor: '#f8d22a',
+    accentColor: '#fae03c',
     photoCount: 4,
-    theme: 'arcade-blue',  // reuse existing theme type
+    theme: 'arcade-blue',
     headerText: 'SNAPKOMS',
     footerText: 'DIGITAL PHOTOBOOTH',
     drawOverlay: (ctx, width, height, photoRects) => {
-      // Draw rounded photo frames
       photoRects.forEach((rect) => {
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 4;
         ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
       });
-      // Corner decorations - small circles
-      ctx.fillStyle = '#f8d22a';
+      ctx.fillStyle = '#fae03c';
       [{ x: 28, y: 38 }, { x: width - 28, y: 38 }, { x: 28, y: height - 38 }, { x: width - 28, y: height - 38 }].forEach(pos => {
         ctx.beginPath();
         ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#202030';
+        ctx.strokeStyle = '#000000';
         ctx.lineWidth = 2;
         ctx.stroke();
       });
     }
   },
   {
-    id: 'snapkoms-arcade',
-    name: 'Snapkoms Arcade',
-    description: 'Electric Blue Arcade Frame with yellow stars & retro doodle badges',
-    bgColor: '#1f1f27',
-    borderColor: '#202030',
-    textColor: '#f8d22a',
-    accentColor: '#f28df8',
+    id: 'snapkoms-navy',
+    name: 'Snapkoms Navy',
+    description: 'Deep Navy Frame with yellow stars & retro doodle badges',
+    bgColor: '#001f67',
+    borderColor: '#000000',
+    textColor: '#fae03c',
+    accentColor: '#008dd1',
     photoCount: 4,
     theme: 'arcade-blue',
     headerText: 'SNAPKOMS',
-    footerText: 'ARCADE PHOTOBOOTH',
+    footerText: 'NAKOMS PHOTOBOOTH',
     drawOverlay: (ctx, width, height, photoRects) => {
-      // Draw Yellow Stars
       const drawStar = (cx: number, cy: number, r: number) => {
         ctx.save();
-        ctx.fillStyle = '#f8d22a';
-        ctx.strokeStyle = '#202030';
+        ctx.fillStyle = '#fae03c';
+        ctx.strokeStyle = '#000000';
         ctx.lineWidth = 3;
         ctx.beginPath();
         for (let i = 0; i < 5; i++) {
@@ -86,57 +83,55 @@ export const FRAME_TEMPLATES: FrameTemplate[] = [
       drawStar(30, height - 40, 14);
       drawStar(width - 30, height - 40, 14);
 
-      // Draw photo slot frames
       photoRects.forEach((rect) => {
-        ctx.strokeStyle = '#202030';
+        ctx.strokeStyle = '#000000';
         ctx.lineWidth = 4;
         ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
       });
     }
   },
   {
-    id: 'carnival-booth',
-    name: 'Carnival Awning',
+    id: 'danger-booth',
+    name: 'Danger Awning',
     description: 'Red & White awning stripes with lively booth badges',
     bgColor: '#ffffff',
-    borderColor: '#ef4444',
-    textColor: '#8e36ff',
-    accentColor: '#f8d22a',
+    borderColor: '#dd0000',
+    textColor: '#10069f',
+    accentColor: '#fae03c',
     photoCount: 4,
     theme: 'carnival-red',
     headerText: 'CARNIVAL SNAP',
     footerText: 'MEMORIES EST. 2026',
     drawOverlay: (ctx, width, height, photoRects) => {
-      // Top Awning Stripes
       ctx.save();
       const awningHeight = 55;
       const stripeWidth = 25;
       for (let x = 0; x < width; x += stripeWidth) {
-        ctx.fillStyle = (Math.floor(x / stripeWidth) % 2 === 0) ? '#ef4444' : '#ffffff';
+        ctx.fillStyle = (Math.floor(x / stripeWidth) % 2 === 0) ? '#dd0000' : '#ffffff';
         ctx.fillRect(x, 0, stripeWidth, awningHeight);
       }
-      ctx.fillStyle = '#202030';
+      ctx.fillStyle = '#000000';
       ctx.fillRect(0, awningHeight, width, 4);
       ctx.restore();
 
       photoRects.forEach((rect) => {
-        ctx.strokeStyle = '#ef4444';
+        ctx.strokeStyle = '#dd0000';
         ctx.lineWidth = 5;
         ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
       });
     }
   },
   {
-    id: 'starry-pink',
-    name: 'Starry Candy',
-    description: 'Soft Pink Pastel with cute doodle stars and candy decorations',
-    bgColor: '#f28df8',
-    borderColor: '#202030',
+    id: 'starry-sky',
+    name: 'Starry Sky',
+    description: 'Sky Blue with cute doodle stars and candy decorations',
+    bgColor: '#008dd1',
+    borderColor: '#000000',
     textColor: '#ffffff',
-    accentColor: '#f8d22a',
+    accentColor: '#fae03c',
     photoCount: 3,
     theme: 'starry-pink',
-    headerText: 'SWEET SKETCH',
+    headerText: 'SKY SKETCH',
     footerText: 'PURE JOY & MAGIC',
     drawOverlay: (ctx, width, height, photoRects) => {
       ctx.save();
@@ -154,7 +149,7 @@ export const FRAME_TEMPLATES: FrameTemplate[] = [
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 6;
         ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
-        ctx.strokeStyle = '#202030';
+        ctx.strokeStyle = '#000000';
         ctx.lineWidth = 3;
         ctx.strokeRect(rect.x - 3, rect.y - 3, rect.w + 6, rect.h + 6);
       });
@@ -164,17 +159,17 @@ export const FRAME_TEMPLATES: FrameTemplate[] = [
     id: 'pop-yellow',
     name: 'Vivid Pop Yellow',
     description: 'Bright Yellow energetic frame with comic doodles',
-    bgColor: '#f8d22a',
-    borderColor: '#202030',
-    textColor: '#8e36ff',
-    accentColor: '#ef4444',
+    bgColor: '#fae03c',
+    borderColor: '#000000',
+    textColor: '#10069f',
+    accentColor: '#ff7900',
     photoCount: 3,
     theme: 'pop-yellow',
     headerText: 'BOOTH SHOT',
     footerText: 'SUPER POP FUN',
     drawOverlay: (ctx, width, height, photoRects) => {
       photoRects.forEach((rect) => {
-        ctx.strokeStyle = '#8e36ff';
+        ctx.strokeStyle = '#10069f';
         ctx.lineWidth = 5;
         ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
       });

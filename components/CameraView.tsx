@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { Camera, FlipHorizontal, AlertCircle, RotateCcw, ArrowRight, Check } from 'lucide-react';
+import { Camera, FlipHorizontal, AlertCircle, RotateCcw, ArrowRight, Check, Upload } from 'lucide-react';
 import { soundFx } from '@/lib/soundEffects';
 
 interface CameraViewProps {
@@ -10,6 +10,18 @@ interface CameraViewProps {
 }
 
 type CapturePhase = 'READY' | 'COUNTDOWN' | 'REVIEW' | 'REVIEW_ALL';
+
+const FILTERS = [
+  { id: 'none', label: 'ORIGINAL', css: 'none' },
+  { id: 'dark_room', label: 'DARK ROOM', css: 'contrast(1.15) brightness(0.9) saturate(1.1) sepia(0.1)' },
+  { id: 'retro', label: 'RETRO', css: 'sepia(0.4) contrast(1.1) brightness(1.1) saturate(1.2)' },
+  { id: 'film', label: 'FILM', css: 'contrast(1.2) saturate(0.9) sepia(0.2) hue-rotate(-10deg)' },
+  { id: 'flash', label: 'FLASH', css: 'brightness(1.2) contrast(1.1) saturate(1.1)' },
+  { id: 'sun_kissed', label: 'SUN KISSED', css: 'sepia(0.3) saturate(1.3) hue-rotate(-15deg) brightness(1.05)' },
+  { id: 'autumn', label: 'AUTUMN', css: 'sepia(0.4) saturate(1.4) hue-rotate(-20deg) brightness(0.95)' },
+  { id: 'noir', label: 'NOIR', css: 'grayscale(1) contrast(1.2) brightness(0.95)' },
+  { id: 'lomo', label: 'LOMO', css: 'contrast(1.3) saturate(1.4) brightness(0.9)' },
+];
 
 export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -30,6 +42,10 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
   const [showFlash, setShowFlash] = useState(false);
   const [lastCapturedPhoto, setLastCapturedPhoto] = useState<string | null>(null);
   const [retakeIndex, setRetakeIndex] = useState<number | null>(null);
+
+  // Filter State
+  const [selectedFilter, setSelectedFilter] = useState('none');
+  const [filterThumbnail, setFilterThumbnail] = useState<string | null>(null);
 
   // Initialize Camera Stream
   const startCamera = useCallback(async () => {
@@ -70,7 +86,7 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
   }, [startCamera]);
 
   // Snap Single Photo from Video Element onto Hidden Canvas
-  const captureCurrentFrame = useCallback(() => {
+  const captureCurrentFrame = useCallback((applyFilter = true) => {
     if (!videoRef.current) return null;
     const video = videoRef.current;
 
@@ -93,11 +109,27 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
       ctx.translate(width, 0);
       ctx.scale(-1, 1);
     }
+    
+    if (applyFilter) {
+      const activeFilterCss = FILTERS.find(f => f.id === selectedFilter)?.css || 'none';
+      ctx.filter = activeFilterCss;
+    }
+
     ctx.drawImage(video, 0, 0, width, height);
     ctx.restore();
 
     return canvas.toDataURL('image/png', 0.95);
-  }, [isMirrored]);
+  }, [isMirrored, selectedFilter]);
+
+  // Capture Thumbnail for Filters
+  const handleVideoPlay = () => {
+    if (!filterThumbnail) {
+      setTimeout(() => {
+        const thumb = captureCurrentFrame(false);
+        if (thumb) setFilterThumbnail(thumb);
+      }, 1000);
+    }
+  };
 
   // Start countdown for a single photo
   const startSingleCountdown = () => {
@@ -123,7 +155,7 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
         setTimeout(() => setShowFlash(false), 300);
 
         // Take snapshot
-        const frameData = captureCurrentFrame();
+        const frameData = captureCurrentFrame(true);
         if (frameData) {
           setLastCapturedPhoto(frameData);
           setCapturePhase('REVIEW');
@@ -154,25 +186,23 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
       setLastCapturedPhoto(null);
 
       if (updatedPhotos.length >= targetPhotoCount) {
-        // All photos captured
         soundFx.playSuccessCheer();
         setCapturePhase('REVIEW_ALL');
       } else {
-        // More photos to take
         setCurrentPoseIndex(updatedPhotos.length);
         setCapturePhase('READY');
       }
     }
   };
 
-  // Retake the current photo (discard and re-shoot)
+  // Retake the current photo
   const handleRetakePhoto = () => {
     soundFx.playClickSound();
     setLastCapturedPhoto(null);
     setCapturePhase('READY');
   };
 
-  // Retake a specific photo from REVIEW_ALL
+  // Retake a specific photo from grid
   const handleRetakeFromGrid = (index: number) => {
     soundFx.playClickSound();
     setRetakeIndex(index);
@@ -181,243 +211,232 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
     setCapturePhase('READY');
   };
 
-  // Final confirmation — proceed to frame compositor
   const handleConfirmAll = () => {
     soundFx.playSuccessCheer();
     onPhotosCaptured(capturedPhotos, targetPhotoCount);
   };
 
   return (
-    <div className="w-full flex flex-col items-center gap-6 justify-center">
+    <div className="w-full h-[100dvh] flex items-center justify-center p-4 lg:p-6 font-sans relative bg-grid overflow-hidden">
+       <div className="flex flex-col lg:flex-row gap-4 lg:gap-8 items-center justify-center w-full max-w-full h-full mx-auto z-10">
+          
+          {/* LEFT PANEL: Camera & Controls */}
+          <div className="flex-1 w-full h-full flex flex-col items-center justify-center gap-4 min-h-0">
+             
+             {/* Camera Frame */}
+             <div className="relative w-full max-w-4xl aspect-video neo-box p-3 bg-surface min-h-0 shrink">
+                <div className="relative w-full h-full rounded-[1.2rem] overflow-hidden bg-black flex items-center justify-center border-2 border-black">
+                    
+                    {cameraError ? (
+                      <div className="p-6 text-center text-white flex flex-col items-center gap-3">
+                        <AlertCircle className="w-12 h-12 text-error" />
+                        <p className="font-bold text-sm text-error">{cameraError}</p>
+                        <button onClick={startCamera} className="neo-btn px-4 py-2 text-xs mt-2">
+                          Coba Lagi
+                        </button>
+                      </div>
+                    ) : (
+                      <video 
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        onPlay={handleVideoPlay}
+                        className={`w-full h-full object-cover transition-opacity ${capturePhase === 'REVIEW' && lastCapturedPhoto ? 'opacity-0' : 'opacity-100'} ${isMirrored ? 'scale-x-[-1]' : ''}`}
+                        style={{ filter: FILTERS.find(f => f.id === selectedFilter)?.css || 'none' }}
+                      />
+                    )}
 
-      {/* REVIEW ALL — Grid of all photos with retake option */}
-      {capturePhase === 'REVIEW_ALL' ? (
-        <div className="w-full max-w-2xl flex flex-col items-center gap-5 animate-fadeIn">
-          <div className="neo-box-purple p-4 w-full text-center">
-            <h2 className="text-xl font-bold font-chillax text-white">
-              Semua Foto Selesai
-            </h2>
-            <p className="text-sm text-white/80 mt-1">
-              Periksa hasil foto. Klik foto yang ingin diulang, atau lanjutkan ke editor frame.
-            </p>
-          </div>
+                    {/* Review Overlay */}
+                    {capturePhase === 'REVIEW' && lastCapturedPhoto && (
+                      <div className="absolute inset-0 z-30">
+                        <img src={lastCapturedPhoto} alt="Review" className="w-full h-full object-cover" />
+                      </div>
+                    )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full">
-            {capturedPhotos.map((photo, idx) => (
-              <div key={idx} className="flex flex-col items-center gap-2">
-                <div className="neo-box p-1 overflow-hidden w-full aspect-3/4">
-                  <img
-                    src={photo}
-                    alt={`Foto ${idx + 1}`}
-                    className="w-full h-full object-cover rounded-xl"
-                  />
+                    {/* Flash Effect Layer */}
+                    {showFlash && (
+                      <div className="absolute inset-0 bg-white z-40 animate-camera-flash pointer-events-none" />
+                    )}
+                    
+                    {/* 3x3 Grid Overlay (Only when ready or countdown) */}
+                    {(capturePhase === 'READY' || capturePhase === 'COUNTDOWN') && (
+                      <>
+                        <div className="absolute inset-0 pointer-events-none flex flex-col z-20">
+                          <div className="flex-1 border-b border-white/40" />
+                          <div className="flex-1 border-b border-white/40" />
+                          <div className="flex-1" />
+                        </div>
+                        <div className="absolute inset-0 pointer-events-none flex z-20">
+                          <div className="flex-1 border-r border-white/40" />
+                          <div className="flex-1 border-r border-white/40" />
+                          <div className="flex-1" />
+                        </div>
+                      </>
+                    )}
+
+                    {/* Countdown */}
+                    {countdown !== null && (
+                      <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+                        <span className="text-[12rem] font-chillax font-black text-secondary drop-shadow-[6px_6px_0_var(--color-black)]">
+                          {countdown}
+                        </span>
+                      </div>
+                    )}
                 </div>
-                <div className="flex items-center gap-2 w-full">
-                  <span className="text-xs font-bold text-[#5c5c68]">Foto {idx + 1}</span>
-                  <button
-                    onClick={() => handleRetakeFromGrid(idx)}
-                    className="neo-btn px-2 py-1 text-[11px] font-bold flex items-center gap-1 ml-auto"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                    Ulangi
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+             </div>
 
-          <button
-            onClick={handleConfirmAll}
-            className="neo-btn-primary py-4 px-10 text-base font-bold flex items-center gap-2"
-          >
-            <Check className="w-5 h-5" />
-            Lanjutkan ke Editor Frame
-          </button>
-        </div>
-      ) : (
-        /* CAMERA VIEW — READY / COUNTDOWN / REVIEW */
-        <>
-          {/* Camera Live View Container — Larger frame */}
-          <div className="relative w-full max-w-2xl aspect-16/10 neo-box border-2 bg-[#1f1f27] overflow-hidden flex items-center justify-center shadow-[0_8px_0_#202030]">
-
-            {/* Flash Effect Layer */}
-            {showFlash && (
-              <div className="absolute inset-0 bg-white z-40 animate-camera-flash pointer-events-none" />
-            )}
-
-            {/* Countdown Overlay */}
-            {countdown !== null && (
-              <div className="absolute inset-0 z-30 bg-transparent flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-8xl font-black font-chillax text-[#f8d22a] drop-shadow-[3px_3px_0px_#202030] animate-bounce">
-                  {countdown}
-                </span>
-              </div>
-            )}
-
-            {/* Review Overlay — Show last captured photo */}
-            {capturePhase === 'REVIEW' && lastCapturedPhoto && (
-              <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#1f1f27]">
-                <img
-                  src={lastCapturedPhoto}
-                  alt="Hasil foto"
-                  className={`w-full h-full object-cover ${isMirrored ? '' : ''}`}
-                />
-              </div>
-            )}
-
-            {/* Video Stream Element */}
-            {cameraError ? (
-              <div className="p-6 text-center text-white flex flex-col items-center gap-3">
-                <AlertCircle className="w-12 h-12 text-[#ef4444]" />
-                <p className="font-bold text-sm text-red-300">{cameraError}</p>
-                <button
-                  onClick={startCamera}
-                  className="neo-btn px-4 py-2 bg-[#f8d22a] text-[#202030] text-xs font-bold"
-                >
-                  Coba Lagi
-                </button>
-              </div>
-            ) : (
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className={`w-full h-full object-cover ${isMirrored ? 'scale-x-[-1]' : ''} ${capturePhase === 'REVIEW' ? 'invisible' : ''}`}
-              />
-            )}
-
-            {/* Camera Live Badge */}
-            {capturePhase !== 'REVIEW' && (
-              <div className="absolute top-3 left-3 bg-[#8e36ff] text-white text-xs font-bold px-3 py-1 rounded-full border-2 border-[#202030] shadow-[0_2px_0_#202030] flex items-center gap-1.5 z-20">
-                <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-                LIVE
-              </div>
-            )}
-
-            {/* Pose Counter Badge */}
-            <div className="absolute top-3 right-14 bg-[#f8d22a] text-[#202030] text-xs font-bold px-3 py-1 rounded-full border-2 border-[#202030] shadow-[0_2px_0_#202030] z-20">
-              {capturedPhotos.length + (capturePhase === 'REVIEW' ? 1 : 0)}/{targetPhotoCount}
-            </div>
-
-            {/* Mirror Toggle Button */}
-            {capturePhase !== 'REVIEW' && (
-              <button
-                onClick={() => setIsMirrored(!isMirrored)}
-                className="absolute top-3 right-3 bg-white border-2 border-[#202030] p-2 rounded-full hover:bg-[#faf8ff] transition shadow-[0_2px_0_#202030] z-20"
-                title="Flip Camera Mirror"
-              >
-                <FlipHorizontal className="w-4 h-4 text-[#8e36ff]" />
-              </button>
-            )}
-          </div>
-
-          {/* Controls Below Camera */}
-          <div className="w-full max-w-2xl flex flex-col gap-4">
-
-            {/* Pose Selector — Only show before any capture starts */}
-            {capturedPhotos.length === 0 && capturePhase === 'READY' && retakeIndex === null && (
-              <div className="neo-box p-4">
-                <label className="text-xs font-bold uppercase text-[#8e36ff] block mb-2 font-chillax">
-                  Pilih Jumlah Foto
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setTargetPhotoCount(4)}
-                    className={`neo-btn py-2.5 text-sm font-bold ${
-                      targetPhotoCount === 4
-                        ? 'bg-[#8e36ff] text-white shadow-[2px_2px_0_#c9a8ff] ring-2 ring-[#8e36ff]/35'
-                        : 'bg-[#faf8ff] text-[#2c2c36]'
-                    }`}
-                  >
-                    4 Foto (Classic)
-                  </button>
-                  <button
-                    onClick={() => setTargetPhotoCount(3)}
-                    className={`neo-btn py-2.5 text-sm font-bold ${
-                      targetPhotoCount === 3
-                        ? 'bg-[#8e36ff] text-white shadow-[2px_2px_0_#c9a8ff] ring-2 ring-[#8e36ff]/35'
-                        : 'bg-[#faf8ff] text-[#2c2c36]'
-                    }`}
-                  >
-                    3 Foto (Trio)
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Photo Thumbnails Row */}
-            {(capturePhase === 'READY' || capturePhase === 'COUNTDOWN') && (
-              <div className="neo-box p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold uppercase text-[#8e36ff] font-chillax">
-                    Progress Foto ({capturedPhotos.length}/{targetPhotoCount})
-                  </span>
-                </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {Array.from({ length: targetPhotoCount }).map((_, idx) => (
-                    <div
-                      key={idx}
-                      className={`aspect-square neo-box border-2 overflow-hidden flex items-center justify-center text-xs font-bold ${
-                        idx === currentPoseIndex
-                          ? 'ring-2 ring-[#8e36ff] bg-[#faf8ff]'
-                          : 'bg-[#faf8ff]'
-                      } ${capturedPhotos[idx] ? '' : 'text-[#5c5c68]'}`}
+             {/* Capture Controls / Review Actions */}
+             <div className="flex items-center justify-center gap-6 w-full h-20 shrink-0">
+                {(capturePhase === 'READY' || capturePhase === 'COUNTDOWN' || capturePhase === 'REVIEW_ALL') ? (
+                  <>
+                    <button 
+                      onClick={() => setTargetPhotoCount(targetPhotoCount === 4 ? 3 : 4)}
+                      className="w-14 h-14 bg-surface rounded-full flex flex-col items-center justify-center border-2 border-black text-primary shadow-[0_4px_0_var(--color-black)] hover:translate-y-[2px] hover:shadow-[0_2px_0_var(--color-black)] active:translate-y-[4px] active:shadow-none transition-all disabled:opacity-50"
+                      title="Ubah Jumlah Foto"
                     >
-                      {capturedPhotos[idx] ? (
-                        <img
-                          src={capturedPhotos[idx]}
-                          alt={`Foto ${idx + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span>#{idx + 1}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                      <span className="font-chillax font-bold text-sm leading-none">{targetPhotoCount}</span>
+                      <span className="text-[10px] font-bold leading-none">Foto</span>
+                    </button>
 
-            {/* Action Buttons */}
-            {capturePhase === 'READY' && (
-              <button
-                onClick={startSingleCountdown}
-                disabled={!!cameraError}
-                className="neo-btn-primary py-4 px-8 text-base font-bold flex items-center justify-center gap-2 w-full disabled:opacity-50"
-              >
-                <Camera className="w-5 h-5" />
-                {retakeIndex !== null
-                  ? `Ulangi Foto #${retakeIndex + 1}`
-                  : `Ambil Foto #${currentPoseIndex + 1}`
-                }
-              </button>
-            )}
+                    <button 
+                      onClick={startSingleCountdown}
+                      disabled={!!countdown || capturePhase === 'REVIEW_ALL'}
+                      className="w-20 h-20 rounded-full border-[4px] border-black p-1.5 flex items-center justify-center cursor-pointer transition-transform disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 bg-surface shadow-[0_6px_0_var(--color-black)]"
+                    >
+                      <div className="w-full h-full rounded-full bg-primary" />
+                    </button>
 
-            {capturePhase === 'REVIEW' && (
-              <div className="flex items-center gap-3 w-full">
-                <button
-                  onClick={handleRetakePhoto}
-                  className="neo-btn py-3.5 px-6 text-sm font-bold flex items-center justify-center gap-2 flex-1"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Ulangi Foto Ini
-                </button>
-                <button
-                  onClick={handleAcceptPhoto}
-                  className="neo-btn-primary py-3.5 px-6 text-sm font-bold flex items-center justify-center gap-2 flex-1"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                  {(retakeIndex !== null) || (capturedPhotos.length + 1 >= targetPhotoCount)
-                    ? 'Simpan'
-                    : 'Simpan & Lanjut'
-                  }
-                </button>
-              </div>
-            )}
+                    <button 
+                      onClick={() => setIsMirrored(!isMirrored)}
+                      disabled={!!countdown || capturePhase === 'REVIEW_ALL'}
+                      className="w-14 h-14 bg-surface rounded-full flex items-center justify-center border-2 border-black text-primary shadow-[0_4px_0_var(--color-black)] hover:translate-y-[2px] hover:shadow-[0_2px_0_var(--color-black)] active:translate-y-[4px] active:shadow-none transition-all disabled:opacity-50"
+                      title="Flip Camera"
+                    >
+                      <FlipHorizontal className="w-6 h-6" />
+                    </button>
+                  </>
+                ) : (
+                  // Review Buttons
+                  <div className="flex items-center gap-4 w-full max-w-sm">
+                    <button
+                      onClick={handleRetakePhoto}
+                      className="neo-btn flex-1 py-3 font-chillax font-bold text-lg flex items-center justify-center gap-2"
+                    >
+                      <RotateCcw className="w-5 h-5" />
+                      Ulangi
+                    </button>
+                    <button
+                      onClick={handleAcceptPhoto}
+                      className="neo-btn-primary flex-1 py-3 font-chillax font-bold text-lg flex items-center justify-center gap-2"
+                    >
+                      <ArrowRight className="w-5 h-5" />
+                      Simpan
+                    </button>
+                  </div>
+                )}
+             </div>
+
+             {/* Filters Row */}
+             <div className="w-full overflow-x-auto pb-2 pt-1 hide-scrollbar shrink-0">
+               <div className="flex gap-4 px-2 w-max mx-auto">
+                 {FILTERS.map(f => (
+                   <div 
+                     key={f.id} 
+                     onClick={() => setSelectedFilter(f.id)}
+                     className="flex flex-col items-center gap-2 cursor-pointer group"
+                   >
+                     <div 
+                        className={`w-16 h-20 rounded-[1rem] overflow-hidden border-[3px] transition-all duration-200 bg-surface flex items-center justify-center ${selectedFilter === f.id ? 'border-primary p-0.5' : 'border-transparent'}`}
+                     >
+                       <div className="w-full h-full rounded-[0.75rem] overflow-hidden bg-gray-200 border border-black/10">
+                         {filterThumbnail ? (
+                           <img 
+                             src={filterThumbnail} 
+                             className={`w-full h-full object-cover ${isMirrored ? 'scale-x-[-1]' : ''}`}
+                             style={{ filter: f.css }}
+                             alt={f.label}
+                           />
+                         ) : (
+                           <div className="w-full h-full bg-gray-300 animate-pulse" />
+                         )}
+                       </div>
+                     </div>
+                     <span 
+                        className={`text-[10px] font-chillax font-bold tracking-wider transition-colors ${selectedFilter === f.id ? 'text-primary' : 'text-text-muted group-hover:text-text'}`}
+                     >
+                       {f.label}
+                     </span>
+                   </div>
+                 ))}
+               </div>
+             </div>
           </div>
-        </>
-      )}
+
+          {/* RIGHT PANEL: Captured Moments */}
+          <div className="w-full lg:w-72 h-full max-h-full overflow-y-auto neo-box bg-surface p-4 flex flex-col items-center gap-4 shrink-0 hide-scrollbar">
+             <div className="text-center shrink-0">
+               <h3 className="font-chillax font-bold text-xl text-text border-b-2 border-black inline-block pb-1">Captured Moments</h3>
+               <p className="font-bold text-base mt-1 text-primary">{capturedPhotos.length}/{targetPhotoCount}</p>
+             </div>
+
+             <div className="flex flex-row lg:flex-col gap-4 w-full justify-center shrink-0">
+               {Array.from({ length: targetPhotoCount }).map((_, idx) => (
+                 <div 
+                   key={idx}
+                   onClick={() => {
+                     // Allow retake by clicking on the thumbnail if we are in REVIEW_ALL
+                     if (capturePhase === 'REVIEW_ALL' && capturedPhotos[idx]) {
+                       handleRetakeFromGrid(idx);
+                     }
+                   }}
+                   className={`
+                     relative aspect-video lg:w-full w-28 rounded-xl flex items-center justify-center overflow-hidden transition-all shrink-0
+                     ${capturePhase === 'REVIEW_ALL' && capturedPhotos[idx] ? 'cursor-pointer hover:border-primary border-2 border-black shadow-[3px_3px_0_var(--color-black)] hover:translate-y-[-2px]' : ''}
+                   `}
+                   style={{
+                     borderColor: idx === currentPoseIndex && !capturedPhotos[idx] ? 'var(--color-primary)' : (capturedPhotos[idx] ? 'var(--color-black)' : 'var(--color-border)'),
+                     borderWidth: '2px',
+                     borderStyle: capturedPhotos[idx] ? 'solid' : 'dashed',
+                     backgroundColor: idx === currentPoseIndex && !capturedPhotos[idx] ? 'var(--color-gray-100)' : (capturedPhotos[idx] ? 'transparent' : 'var(--color-surface)')
+                   }}
+                 >
+                   {capturedPhotos[idx] ? (
+                     <img src={capturedPhotos[idx]} className="w-full h-full object-cover" />
+                   ) : (
+                     <span className="font-chillax font-bold text-xl text-text-muted opacity-50">{idx + 1}</span>
+                   )}
+                   
+                   {/* Hover overlay for retake */}
+                   {capturePhase === 'REVIEW_ALL' && capturedPhotos[idx] && (
+                     <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white">
+                       <RotateCcw className="w-5 h-5 mb-1" />
+                       <span className="text-[10px] font-bold font-chillax">Ulangi</span>
+                     </div>
+                   )}
+                 </div>
+               ))}
+             </div>
+
+             {/* Action Button at Bottom of Sidebar */}
+             <div className="w-full mt-2 flex-1 flex flex-col justify-end shrink-0">
+               {capturePhase === 'REVIEW_ALL' ? (
+                  <button 
+                    onClick={handleConfirmAll}
+                    className="neo-btn-primary w-full py-3 font-chillax font-bold text-base flex items-center justify-center gap-2"
+                  >
+                    <Check className="w-5 h-5" />
+                    Selesai
+                  </button>
+               ) : (
+                  <div className="w-full py-3 border-2 border-dashed border-border text-text-muted rounded-xl font-chillax font-bold text-xs text-center flex items-center justify-center bg-surface">
+                    Sedang Berfoto...
+                  </div>
+               )}
+             </div>
+          </div>
+
+       </div>
     </div>
   );
 }

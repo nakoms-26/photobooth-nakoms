@@ -321,42 +321,51 @@ export default function Home() {
     );
   }
 
-  // ===== NON-IDLE STATES: Inside ArcadeCabinet shell =====
-  return (
-    <ArcadeCabinet step={step} onInsertCoin={handleStartSession} onReset={handleReset}>
+  // ===== NON-IDLE STATES =====
+  
+  // CAMERA CAPTURE STUDIO (Fullscreen)
+  if (step === 'CAMERA_SETUP' || step === 'COUNTDOWN_CAPTURE') {
+    return (
+      <CameraView onPhotosCaptured={handlePhotosCaptured} />
+    );
+  }
 
-      {/* STEP 2: CAMERA CAPTURE STUDIO */}
-      {(step === 'CAMERA_SETUP' || step === 'COUNTDOWN_CAPTURE') && (
-        <CameraView onPhotosCaptured={handlePhotosCaptured} />
-      )}
-
-      {/* STEP 3: FRAME COMPOSITOR */}
-      {step === 'FRAME_COMPOSITOR' && (
-        <div className="w-full flex flex-col items-center gap-4">
+  // FRAME COMPOSITOR (Fullscreen)
+  if (step === 'FRAME_COMPOSITOR') {
+    return (
+      <div className="w-full min-h-[100dvh] flex flex-col items-center py-6 px-4 font-sans relative bg-grid overflow-y-auto">
+        <div className="w-full max-w-7xl mx-auto flex flex-col gap-6 z-10">
           <FrameCompositor
             photos={capturedPhotos}
             onCompositeGenerated={(pngData) => setCompositePng(pngData)}
+            actions={
+              <button
+                onClick={handleGoToResult}
+                disabled={!compositePng}
+                className="w-full neo-btn-primary py-4 px-10 text-xl font-chillax font-bold flex justify-center items-center gap-2 disabled:opacity-50 shadow-[4px_4px_0_var(--color-black)]"
+              >
+                <Wand2 className="w-6 h-6" />
+                Selesai dan Simpan
+              </button>
+            }
           />
-          <button
-            onClick={handleGoToResult}
-            disabled={!compositePng}
-            className="neo-btn-primary py-3.5 px-8 text-base font-bold flex items-center gap-2 disabled:opacity-50 mt-2"
-          >
-            <Wand2 className="w-5 h-5" />
-            Selesai dan Export (PNG dan GIF)
-          </button>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {/* STEP 4: RESULT DOWNLOAD STUDIO */}
-      {step === 'RESULT' && (
+  // RESULT DOWNLOAD STUDIO (Fullscreen)
+  if (step === 'RESULT') {
+    return (
+      <div className="w-full min-h-[100dvh] flex flex-col items-center py-6 px-4 font-sans relative bg-grid overflow-y-auto">
         <DownloadStudio
           pngDataUrl={compositePng}
           capturedPhotos={capturedPhotos}
           onResetSession={handleReset}
         />
-      )}
+      </div>
+    );
+  }
 
-    </ArcadeCabinet>
-  );
+  return null;
 }
