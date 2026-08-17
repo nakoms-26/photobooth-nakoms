@@ -1,0 +1,15 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model SessionData {
+  id        String   @id @default(cuid())
+  pngPath   String   // URL/Path ke gambar PNG
+  gifPath   String   // URL/Path ke gambar GIF
+  createdAt DateTime @default(now())
+}

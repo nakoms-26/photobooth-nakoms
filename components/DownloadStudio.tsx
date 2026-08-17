@@ -6,7 +6,7 @@ import { Download, Film, Share2, Sparkles, RotateCcw, Check, RefreshCw, Image as
 import { createAnimatedGif } from '@/lib/gifGenerator';
 import { soundFx } from '@/lib/soundEffects';
 import { QRCodeSVG } from 'qrcode.react';
-import { uploadAsset } from '@/lib/uploadApi';
+import { uploadSession } from '@/lib/uploadApi';
 
 interface DownloadStudioProps {
   pngDataUrl: string;
@@ -19,10 +19,9 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
   const [isGeneratingGif, setIsGeneratingGif] = useState<boolean>(true);
   const [gifError, setGifError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [pngUploadUrl, setPngUploadUrl] = useState<string | null>(null);
-  const [gifUploadUrl, setGifUploadUrl] = useState<string | null>(null);
-  const [isUploadingPng, setIsUploadingPng] = useState<boolean>(true);
-  const [isUploadingGif, setIsUploadingGif] = useState<boolean>(false);
+  
+  const [isUploading, setIsUploading] = useState<boolean>(true);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   // Helper to load image and extract true aspect ratio
   const getImageDimensions = (src: string): Promise<{ width: number; height: number }> => {
@@ -57,16 +56,18 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
       if (isMounted) {
         if (res.success && res.gifUrl) {
           setGifUrl(res.gifUrl);
-          // Upload GIF in background
-          setIsUploadingGif(true);
-          uploadAsset(res.gifUrl, 'gif').then((url) => {
-            if (isMounted && url) {
-              setGifUploadUrl(url);
+          
+          // Upload Both PNG and GIF in one request
+          setIsUploading(true);
+          uploadSession(pngDataUrl, res.gifUrl).then((id) => {
+            if (isMounted && id) {
+              setSessionId(id);
             }
-            if (isMounted) setIsUploadingGif(false);
+            if (isMounted) setIsUploading(false);
           });
         } else {
           setGifError(res.error || 'Gagal merender GIF');
+          setIsUploading(false);
         }
         setIsGeneratingGif(false);
       }
@@ -75,15 +76,6 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
     if (capturedPhotos.length > 0) {
       generateGif();
     }
-    
-    // Upload PNG in background
-    setIsUploadingPng(true);
-    uploadAsset(pngDataUrl, 'png').then((url) => {
-      if (isMounted && url) {
-        setPngUploadUrl(url);
-      }
-      if (isMounted) setIsUploadingPng(false);
-    });
 
     return () => {
       isMounted = false;
@@ -158,25 +150,11 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
 
           <button
             onClick={handleDownloadPng}
-            className="w-full neo-btn-primary py-3 text-sm font-bold flex items-center justify-center gap-2 font-chillax"
+            className="w-full neo-btn-primary py-3 text-sm font-bold flex items-center justify-center gap-2 font-chillax mt-2"
           >
             <Download className="w-4 h-4" />
             DOWNLOAD PNG STRIP
           </button>
-
-          {isUploadingPng ? (
-            <div className="w-full flex items-center justify-center gap-2 py-2 text-[#8e36ff]">
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              <span className="text-xs font-bold font-chillax">Menyiapkan QR Code...</span>
-            </div>
-          ) : pngUploadUrl ? (
-            <div className="w-full mt-2 flex flex-col items-center gap-2 border-t-2 border-[#202030] pt-12">
-              <span className="text-[10px] font-bold text-[#5c5c68]">SCAN UNTUK DOWNLOAD DI HP</span>
-              <div className="p-2 bg-white border-2 border-[#202030] rounded-lg shadow-sm">
-                <QRCodeSVG value={pngUploadUrl} size={90} />
-              </div>
-            </div>
-          ) : null}
         </div>
 
         {/* Animated GIF Boomerang Card */}
@@ -215,27 +193,42 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
           <button
             onClick={handleDownloadGif}
             disabled={!gifUrl || isGeneratingGif}
-            className="w-full neo-btn-yellow py-3 text-sm font-bold flex items-center justify-center gap-2 font-chillax disabled:opacity-50"
+            className="w-full neo-btn-yellow py-3 text-sm font-bold flex items-center justify-center gap-2 font-chillax disabled:opacity-50 mt-2"
           >
             <Film className="w-4 h-4" />
             DOWNLOAD GIF ANIMATED
           </button>
-
-          {isUploadingGif ? (
-            <div className="w-full flex items-center justify-center gap-2 py-2 text-[#8e36ff]">
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              <span className="text-xs font-bold font-chillax">Menyiapkan QR Code...</span>
-            </div>
-          ) : gifUploadUrl ? (
-            <div className="w-full mt-2 flex flex-col items-center gap-2 border-t-2 border-[#202030] pt-12">
-              <span className="text-[10px] font-bold text-[#5c5c68]">SCAN UNTUK DOWNLOAD DI HP</span>
-              <div className="p-2 bg-white border-2 border-[#202030] rounded-lg shadow-sm">
-                <QRCodeSVG value={gifUploadUrl} size={90} />
-              </div>
-            </div>
-          ) : null}
         </div>
+      </div>
 
+      {/* SINGLE QR CODE FOR DOWNLOAD PAGE */}
+      <div className="neo-box w-full bg-white p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex flex-col items-center md:items-start text-center md:text-left gap-2">
+          <h3 className="font-chillax font-black text-2xl text-[var(--color-primary)]">
+            SCAN UNTUK DOWNLOAD!
+          </h3>
+          <p className="text-sm font-semibold text-[var(--color-text-secondary)] max-w-sm">
+            Scan QR code di samping menggunakan HP kamu untuk mengunduh foto dan video GIF secara langsung.
+          </p>
+        </div>
+        
+        <div className="flex-shrink-0 bg-white border-4 border-black p-3 rounded-xl shadow-[4px_4px_0_#000]">
+          {isUploading || isGeneratingGif ? (
+            <div className="w-[120px] h-[120px] flex flex-col items-center justify-center gap-2 bg-gray-100 rounded-lg">
+              <RefreshCw className="w-8 h-8 animate-spin text-[var(--color-primary)]" />
+              <span className="text-[10px] font-bold">Membuat Link...</span>
+            </div>
+          ) : sessionId ? (
+            <QRCodeSVG 
+              value={`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/download/${sessionId}`} 
+              size={120} 
+            />
+          ) : (
+            <div className="w-[120px] h-[120px] flex flex-col items-center justify-center gap-2 bg-red-100 rounded-lg text-red-600 p-2 text-center">
+              <span className="text-[10px] font-bold">Gagal membuat QR</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Action Buttons Row */}
