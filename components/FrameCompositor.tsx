@@ -15,7 +15,7 @@ const TEMPLATES = FRAME_TEMPLATES.filter(t => t.photoCount === 3);
 const DEFAULT_WATERMARK = 'SNAPKOMS MEMORIES';
 
 // Renders a photo strip onto a given canvas with the given template
-function renderStrip(
+async function renderStrip(
   canvas: HTMLCanvasElement,
   template: FrameTemplate,
   loadedImages: HTMLImageElement[],
@@ -24,77 +24,121 @@ function renderStrip(
   const ctx = canvas.getContext('2d');
   if (!ctx || loadedImages.length === 0) return;
 
-  const W = 480;
-  const marginX = 35;
-  const photoW = W - marginX * 2;
-  const photoH = photoW / (16 / 9);
-  const spacing = 24;
-  const headerH = 90;
-  const footerH = 85;
-  const startY = headerH + 15;
-  const H = startY + photoH * 3 + spacing * 2 + footerH;
+  if (template.isImageFrame && template.frameUrl && template.canvasWidth && template.canvasHeight && template.photoRects) {
+    const W = template.canvasWidth;
+    const H = template.canvasHeight;
+    canvas.width = W;
+    canvas.height = H;
 
-  canvas.width = W;
-  canvas.height = H;
+    // Background white (just in case)
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
 
-  // Background
-  ctx.fillStyle = template.bgColor;
-  ctx.fillRect(0, 0, W, H);
+    // Draw photos in defined rects
+    template.photoRects.forEach((rect, idx) => {
+      if (idx >= loadedImages.length) return;
+      const img = loadedImages[idx];
+      
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(rect.x, rect.y, rect.w, rect.h);
+      ctx.clip();
+      
+      const ir = img.width / img.height;
+      const tr = rect.w / rect.h;
+      let dw = rect.w, dh = rect.h, dx = rect.x, dy = rect.y;
+      if (ir > tr) { dw = rect.h * ir; dx = rect.x - (dw - rect.w) / 2; }
+      else { dh = rect.w / ir; dy = rect.y - (dh - rect.h) / 2; }
+      
+      ctx.drawImage(img, dx, dy, dw, dh);
+      ctx.restore();
+    });
 
-  // Outer border
-  ctx.strokeStyle = template.borderColor;
-  ctx.lineWidth = 8;
-  ctx.strokeRect(4, 4, W - 8, H - 8);
+    // Load and draw frame image over it
+    const frameImg = new Image();
+    frameImg.crossOrigin = 'anonymous';
+    await new Promise<void>((resolve) => {
+      frameImg.onload = () => {
+        ctx.drawImage(frameImg, 0, 0, W, H);
+        resolve();
+      };
+      frameImg.src = template.frameUrl!;
+    });
+    
+  } else {
+    // Old dynamic canvas code
+    const W = 480;
+    const marginX = 35;
+    const photoW = W - marginX * 2;
+    const photoH = photoW / (16 / 9);
+    const spacing = 24;
+    const headerH = 90;
+    const footerH = 85;
+    const startY = headerH + 15;
+    const H = startY + photoH * 3 + spacing * 2 + footerH;
 
-  // Header
-  ctx.save();
-  ctx.font = 'bold 36px "Fredoka", sans-serif';
-  ctx.fillStyle = template.textColor;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.shadowColor = '#000';
-  ctx.shadowOffsetX = 3;
-  ctx.shadowOffsetY = 3;
-  ctx.fillText(template.headerText, W / 2, 50);
-  ctx.restore();
+    canvas.width = W;
+    canvas.height = H;
 
-  // Photos
-  const photoRects: Array<{ x: number; y: number; w: number; h: number }> = [];
-  loadedImages.forEach((img, idx) => {
-    if (idx >= 3) return;
-    const py = startY + idx * (photoH + spacing);
-    photoRects.push({ x: marginX, y: py, w: photoW, h: photoH });
+    // Background
+    ctx.fillStyle = template.bgColor || '#000000';
+    ctx.fillRect(0, 0, W, H);
+
+    // Outer border
+    ctx.strokeStyle = template.borderColor || '#000000';
+    ctx.lineWidth = 8;
+    ctx.strokeRect(4, 4, W - 8, H - 8);
+
+    // Header
     ctx.save();
-    ctx.beginPath();
-    ctx.rect(marginX, py, photoW, photoH);
-    ctx.clip();
-    const ir = img.width / img.height;
-    const tr = photoW / photoH;
-    let dw = photoW, dh = photoH, dx = marginX, dy = py;
-    if (ir > tr) { dw = photoH * ir; dx = marginX - (dw - photoW) / 2; }
-    else { dh = photoW / ir; dy = py - (dh - photoH) / 2; }
-    ctx.drawImage(img, dx, dy, dw, dh);
+    ctx.font = 'bold 36px "Fredoka", sans-serif';
+    ctx.fillStyle = template.textColor || '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = '#000';
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
+    ctx.fillText(template.headerText || '', W / 2, 50);
     ctx.restore();
-  });
 
-  // Frame overlay
-  if (template.drawOverlay) template.drawOverlay(ctx, W, H, photoRects);
+    // Photos
+    const photoRects: Array<{ x: number; y: number; w: number; h: number }> = [];
+    loadedImages.forEach((img, idx) => {
+      if (idx >= 3) return;
+      const py = startY + idx * (photoH + spacing);
+      photoRects.push({ x: marginX, y: py, w: photoW, h: photoH });
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(marginX, py, photoW, photoH);
+      ctx.clip();
+      const ir = img.width / img.height;
+      const tr = photoW / photoH;
+      let dw = photoW, dh = photoH, dx = marginX, dy = py;
+      if (ir > tr) { dw = photoH * ir; dx = marginX - (dw - photoW) / 2; }
+      else { dh = photoW / ir; dy = py - (dh - photoH) / 2; }
+      ctx.drawImage(img, dx, dy, dw, dh);
+      ctx.restore();
+    });
 
-  // Footer
-  const footerY = H - 55;
-  ctx.save();
-  ctx.font = 'bold 20px "Fredoka", sans-serif';
-  ctx.fillStyle = template.textColor;
-  ctx.textAlign = 'center';
-  ctx.shadowColor = '#000';
-  ctx.shadowOffsetX = 2;
-  ctx.shadowOffsetY = 2;
-  ctx.fillText(watermark, W / 2, footerY);
-  ctx.font = '14px "Fredoka", sans-serif';
-  ctx.fillStyle = '#ffffff';
-  const dateStr = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' });
-  ctx.fillText(`${template.footerText} - ${dateStr}`, W / 2, footerY + 28);
-  ctx.restore();
+    // Frame overlay
+    if (template.drawOverlay) template.drawOverlay(ctx, W, H, photoRects);
+
+    // Footer
+    const footerY = H - 55;
+    ctx.save();
+    ctx.font = 'bold 20px "Fredoka", sans-serif';
+    ctx.fillStyle = template.textColor || '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#000';
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+    ctx.fillText(watermark, W / 2, footerY);
+    ctx.font = '14px "Fredoka", sans-serif';
+    ctx.fillStyle = '#ffffff';
+    const dateStr = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' });
+    ctx.fillText(`${template.footerText || ''} - ${dateStr}`, W / 2, footerY + 28);
+    ctx.restore();
+  }
 }
 
 export default function FrameCompositor({ photos, onCompositeGenerated, actions }: FrameCompositorProps) {
