@@ -28,7 +28,7 @@ export default function RootLayout({
           as="style"
         />
       </head>
-      <body className="min-h-full flex flex-col bg-[#f5f5f5] text-[#1f1f27] selection:bg-[#c9a8ff] selection:text-[#1f1f27]">
+      <body className="min-h-full flex flex-col bg-[var(--color-background)] text-[var(--color-text)] selection:bg-[var(--color-primary)] selection:text-[var(--color-white)]">
         {children}
       </body>
     </html>

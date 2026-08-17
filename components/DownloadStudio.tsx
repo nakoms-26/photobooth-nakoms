@@ -122,7 +122,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
     <div className="w-full max-w-3xl flex flex-col items-center justify-center gap-6 animate-fadeIn">
       
       {/* Header Banner */}
-      <div className="neo-box-purple p-4 w-full text-center flex flex-col items-center gap-1">
+      <div className="neo-box-yellow p-4 w-full text-center flex flex-col items-center gap-1">
         <div className="flex items-center gap-2 text-2xl font-extrabold font-chillax text-white">
           <Sparkles className="w-6 h-6 text-[#f8d22a] animate-spin" />
           YAY! SESI FOTO SELESAI!
@@ -170,7 +170,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
               <span className="text-xs font-bold font-chillax">Menyiapkan QR Code...</span>
             </div>
           ) : pngUploadUrl ? (
-            <div className="w-full mt-2 flex flex-col items-center gap-2 border-t-2 border-[#202030] pt-4">
+            <div className="w-full mt-2 flex flex-col items-center gap-2 border-t-2 border-[#202030] pt-12">
               <span className="text-[10px] font-bold text-[#5c5c68]">SCAN UNTUK DOWNLOAD DI HP</span>
               <div className="p-2 bg-white border-2 border-[#202030] rounded-lg shadow-sm">
                 <QRCodeSVG value={pngUploadUrl} size={90} />
@@ -227,7 +227,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
               <span className="text-xs font-bold font-chillax">Menyiapkan QR Code...</span>
             </div>
           ) : gifUploadUrl ? (
-            <div className="w-full mt-2 flex flex-col items-center gap-2 border-t-2 border-[#202030] pt-4">
+            <div className="w-full mt-2 flex flex-col items-center gap-2 border-t-2 border-[#202030] pt-12">
               <span className="text-[10px] font-bold text-[#5c5c68]">SCAN UNTUK DOWNLOAD DI HP</span>
               <div className="p-2 bg-white border-2 border-[#202030] rounded-lg shadow-sm">
                 <QRCodeSVG value={gifUploadUrl} size={90} />

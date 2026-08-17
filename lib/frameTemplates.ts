@@ -6,7 +6,7 @@ export interface FrameTemplate {
   borderColor: string;
   textColor: string;
   accentColor: string;
-  photoCount: 3 | 4;
+  photoCount: 3;
   theme: 'arcade-blue' | 'carnival-red' | 'starry-pink' | 'pop-yellow';
   headerText: string;
   footerText: string;
@@ -22,7 +22,7 @@ export const FRAME_TEMPLATES: FrameTemplate[] = [
     borderColor: '#000000',
     textColor: '#ffffff',
     accentColor: '#fae03c',
-    photoCount: 4,
+    photoCount: 3,
     theme: 'arcade-blue',
     headerText: 'SNAPKOMS',
     footerText: 'DIGITAL PHOTOBOOTH',
@@ -51,7 +51,7 @@ export const FRAME_TEMPLATES: FrameTemplate[] = [
     borderColor: '#000000',
     textColor: '#fae03c',
     accentColor: '#008dd1',
-    photoCount: 4,
+    photoCount: 3,
     theme: 'arcade-blue',
     headerText: 'SNAPKOMS',
     footerText: 'NAKOMS PHOTOBOOTH',
@@ -63,26 +63,18 @@ export const FRAME_TEMPLATES: FrameTemplate[] = [
         ctx.lineWidth = 3;
         ctx.beginPath();
         for (let i = 0; i < 5; i++) {
-          ctx.lineTo(
-            cx + r * Math.cos((18 + i * 72) * Math.PI / 180),
-            cy - r * Math.sin((18 + i * 72) * Math.PI / 180)
-          );
-          ctx.lineTo(
-            cx + (r / 2) * Math.cos((54 + i * 72) * Math.PI / 180),
-            cy - (r / 2) * Math.sin((54 + i * 72) * Math.PI / 180)
-          );
+          ctx.lineTo(cx + r * Math.cos((18 + i * 72) * Math.PI / 180), cy - r * Math.sin((18 + i * 72) * Math.PI / 180));
+          ctx.lineTo(cx + (r / 2) * Math.cos((54 + i * 72) * Math.PI / 180), cy - (r / 2) * Math.sin((54 + i * 72) * Math.PI / 180));
         }
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
         ctx.restore();
       };
-
       drawStar(35, 45, 16);
       drawStar(width - 35, 45, 16);
       drawStar(30, height - 40, 14);
       drawStar(width - 30, height - 40, 14);
-
       photoRects.forEach((rect) => {
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 4;
@@ -98,7 +90,7 @@ export const FRAME_TEMPLATES: FrameTemplate[] = [
     borderColor: '#dd0000',
     textColor: '#10069f',
     accentColor: '#fae03c',
-    photoCount: 4,
+    photoCount: 3,
     theme: 'carnival-red',
     headerText: 'CARNIVAL SNAP',
     footerText: 'MEMORIES EST. 2026',
@@ -113,7 +105,6 @@ export const FRAME_TEMPLATES: FrameTemplate[] = [
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, awningHeight, width, 4);
       ctx.restore();
-
       photoRects.forEach((rect) => {
         ctx.strokeStyle = '#dd0000';
         ctx.lineWidth = 5;
@@ -144,7 +135,6 @@ export const FRAME_TEMPLATES: FrameTemplate[] = [
         ctx.fill();
       }
       ctx.restore();
-
       photoRects.forEach((rect) => {
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 6;
@@ -168,6 +158,7 @@ export const FRAME_TEMPLATES: FrameTemplate[] = [
     headerText: 'BOOTH SHOT',
     footerText: 'SUPER POP FUN',
     drawOverlay: (ctx, width, height, photoRects) => {
+      void height;
       photoRects.forEach((rect) => {
         ctx.strokeStyle = '#10069f';
         ctx.lineWidth = 5;
