@@ -263,7 +263,7 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
 
       {/* TOP-LEFT: progress badge */}
       {(capturePhase === 'READY' || capturePhase === 'COUNTDOWN') && (
-        <div className="absolute top-12 left-4 z-40">
+        <div className="absolute top-4 left-4 z-40">
           <div
             className="px-3 py-1 rounded-full font-chillax font-black text-sm border-2 border-black text-black"
             style={{ backgroundColor: 'var(--color-secondary)', boxShadow: '0 3px 0 #000' }}
@@ -278,7 +278,7 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
         <button
           onClick={() => setIsMirrored(!isMirrored)}
           disabled={!!countdown}
-          className="absolute top-12 right-4 z-40 w-10 h-10 rounded-full bg-white/70 backdrop-blur-sm border border-black/10 flex items-center justify-center text-black disabled:opacity-30 hover:bg-white/90 transition-all"
+          className="absolute top-4 right-4 z-40 w-10 h-10 rounded-full bg-white/70 backdrop-blur-sm border border-black/10 flex items-center justify-center text-black disabled:opacity-30 hover:bg-white/90 transition-all"
           title="Flip Camera"
         >
           <FlipHorizontal className="w-5 h-5" />
