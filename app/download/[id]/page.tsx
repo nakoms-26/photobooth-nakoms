@@ -5,8 +5,8 @@ import DownloadClientPage from './DownloadClientPage';
 // Pastikan halaman ini dinamis karena membaca data dari database
 export const dynamic = 'force-dynamic';
 
-export default async function DownloadPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default async function DownloadPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
 
   try {
     const session = await db.sessionData.findUnique({
