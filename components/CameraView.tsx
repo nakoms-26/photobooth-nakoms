@@ -171,10 +171,33 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
     setCapturePhase('READY');
   };
 
-  const handleConfirmAll = () => {
+  const handleConfirmAll = useCallback(() => {
     soundFx.playSuccessCheer();
     onPhotosCaptured(capturedPhotos);
-  };
+  }, [capturedPhotos, onPhotosCaptured]);
+
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (capturePhase === 'READY' && countdown === null) {
+          startSingleCountdown();
+        } else if (capturePhase === 'REVIEW') {
+          handleAcceptPhoto();
+        } else if (capturePhase === 'REVIEW_ALL') {
+          handleConfirmAll();
+        }
+      } else if (e.code === 'Escape' || e.code === 'Backspace') {
+        if (capturePhase === 'REVIEW') {
+          handleRetakePhoto();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [capturePhase, countdown]);
 
   return (
     /* Root: fullscreen, camera is the ONLY background */

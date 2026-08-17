@@ -44,11 +44,22 @@ export default function SplashScreen({ onStart }: SplashScreenProps) {
     };
   }, [startCamera]);
 
-  const handleStart = () => {
+  const handleStart = useCallback(() => {
     if (isStarting) return;
     setIsStarting(true);
     setTimeout(() => onStart(), 200);
-  };
+  }, [isStarting, onStart]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        handleStart();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleStart]);
 
   return (
     <div
