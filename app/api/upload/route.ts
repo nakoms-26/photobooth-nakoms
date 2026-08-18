@@ -79,9 +79,12 @@ export async function POST(req: Request) {
     }
 
     const sessionId = incomingSessionId || ('c' + timestamp.toString(36) + Math.random().toString(36).substring(2, 7));
+    console.log('[upload/initial] sessionId:', sessionId, '| rawPhotos count:', rawPhotos.length);
 
-    const pngUploadPromise = uploadToAssetServer(pngBase64, `photo_strip_${timestamp}.png`, 'image/png');
-    const gifUploadPromise = gifBase64 
+    const pngUploadPromise = uploadToAssetServer(pngBase64, `photo_strip_${timestamp}.png`, 'image/png')
+      .catch((e: Error) => { console.error('[upload/initial] PNG upload error:', e.message); throw e; });
+
+    const gifUploadPromise = gifBase64
       ? uploadToAssetServer(gifBase64, `photo_anim_${timestamp}.gif`, 'image/gif')
       : Promise.resolve('PENDING');
 
@@ -92,10 +95,11 @@ export async function POST(req: Request) {
     const [pngUrl, gifUrl, photo1Url, photo2Url, photo3Url] = await Promise.all([
       pngUploadPromise,
       gifUploadPromise,
-      raw1Promise.catch(e => { console.error('Raw 1 error:', e); return null; }),
-      raw2Promise.catch(e => { console.error('Raw 2 error:', e); return null; }),
-      raw3Promise.catch(e => { console.error('Raw 3 error:', e); return null; })
+      raw1Promise.catch((e: Error) => { console.error('[upload/initial] Raw 1 error:', e.message); return null; }),
+      raw2Promise.catch((e: Error) => { console.error('[upload/initial] Raw 2 error:', e.message); return null; }),
+      raw3Promise.catch((e: Error) => { console.error('[upload/initial] Raw 3 error:', e.message); return null; }),
     ]);
+    console.log('[upload/initial] All uploads done. pngUrl:', pngUrl?.substring(0, 60));
 
     // Simpan ke database
     try {

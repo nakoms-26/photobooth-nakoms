@@ -44,8 +44,16 @@ export const uploadInitialSession = async (
           resolve({ success: false, error: "Gagal memproses respons server" });
         }
       } else {
-        console.error("Server error initial upload:", xhr.statusText);
-        resolve({ success: false, error: xhr.statusText });
+        // Read the body to get the actual server error message
+        let serverError = xhr.statusText;
+        try {
+          const errBody = JSON.parse(xhr.responseText);
+          serverError = errBody.error || errBody.details || xhr.statusText;
+          console.error("[uploadInitialSession] Server error body:", errBody);
+        } catch {
+          console.error("[uploadInitialSession] Server error (non-JSON):", xhr.responseText?.substring(0, 300));
+        }
+        resolve({ success: false, error: `HTTP ${xhr.status}: ${serverError}` });
       }
     };
 
@@ -82,8 +90,15 @@ export const uploadGifSession = async (
           resolve({ success: false, error: "Gagal memproses respons server GIF" });
         }
       } else {
-        console.error("Server error GIF upload:", xhr.statusText);
-        resolve({ success: false, error: xhr.statusText });
+        let serverError = xhr.statusText;
+        try {
+          const errBody = JSON.parse(xhr.responseText);
+          serverError = errBody.error || errBody.details || xhr.statusText;
+          console.error("[uploadGifSession] Server error body:", errBody);
+        } catch {
+          console.error("[uploadGifSession] Server error (non-JSON):", xhr.responseText?.substring(0, 300));
+        }
+        resolve({ success: false, error: `HTTP ${xhr.status}: ${serverError}` });
       }
     };
 
