@@ -81,16 +81,16 @@ export async function POST(req: Request) {
     const sessionId = incomingSessionId || ('c' + timestamp.toString(36) + Math.random().toString(36).substring(2, 7));
     console.log('[upload/initial] sessionId:', sessionId, '| rawPhotos count:', rawPhotos.length);
 
-    const pngUploadPromise = uploadToAssetServer(pngBase64, `photo_strip_${timestamp}.png`, 'image/png')
-      .catch((e: Error) => { console.error('[upload/initial] PNG upload error:', e.message); throw e; });
+    const pngUploadPromise = uploadToAssetServer(pngBase64, `photo_strip_${timestamp}.jpg`, 'image/jpeg')
+      .catch((e: Error) => { console.error('[upload/initial] PNG/JPG upload error:', e.message); throw e; });
 
     const gifUploadPromise = gifBase64
       ? uploadToAssetServer(gifBase64, `photo_anim_${timestamp}.gif`, 'image/gif')
       : Promise.resolve(''); // GIF dinonaktifkan sementara — simpan empty string di DB
 
-    const raw1Promise = (rawPhotos && rawPhotos[0]) ? uploadToAssetServer(rawPhotos[0], `raw_photo_1_${timestamp}.png`, 'image/png') : Promise.resolve(null);
-    const raw2Promise = (rawPhotos && rawPhotos[1]) ? uploadToAssetServer(rawPhotos[1], `raw_photo_2_${timestamp}.png`, 'image/png') : Promise.resolve(null);
-    const raw3Promise = (rawPhotos && rawPhotos[2]) ? uploadToAssetServer(rawPhotos[2], `raw_photo_3_${timestamp}.png`, 'image/png') : Promise.resolve(null);
+    const raw1Promise = (rawPhotos && rawPhotos[0]) ? uploadToAssetServer(rawPhotos[0], `raw_photo_1_${timestamp}.jpg`, 'image/jpeg') : Promise.resolve(null);
+    const raw2Promise = (rawPhotos && rawPhotos[1]) ? uploadToAssetServer(rawPhotos[1], `raw_photo_2_${timestamp}.jpg`, 'image/jpeg') : Promise.resolve(null);
+    const raw3Promise = (rawPhotos && rawPhotos[2]) ? uploadToAssetServer(rawPhotos[2], `raw_photo_3_${timestamp}.jpg`, 'image/jpeg') : Promise.resolve(null);
 
     const [pngUrl, gifUrl, photo1Url, photo2Url, photo3Url] = await Promise.all([
       pngUploadPromise,

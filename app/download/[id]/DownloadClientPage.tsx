@@ -62,7 +62,7 @@ export default function DownloadClientPage({ id, initialSession }: DownloadClien
   }, [id]); // Only id as dep — polling controlled by ref internally
 
 
-  const handleDownload = async (url: string, filenamePrefix: string, extension: string = 'png') => {
+  const handleDownload = async (url: string, filenamePrefix: string, extension: string = 'jpg') => {
     soundFx.playClickSound();
     const filename = `${filenamePrefix}-${Date.now()}.${extension}`;
 
@@ -193,7 +193,7 @@ export default function DownloadClientPage({ id, initialSession }: DownloadClien
           </div>
 
           <button
-            onClick={() => handleDownload(session.pngPath, 'medkombox-strip', 'png')}
+            onClick={() => handleDownload(session.pngPath, 'medkombox-strip', 'jpg')}
             className="w-full neo-btn-primary py-4 font-chillax font-bold text-base flex items-center justify-center gap-2 mt-2"
           >
             <Download className="w-5 h-5" />
@@ -277,7 +277,7 @@ export default function DownloadClientPage({ id, initialSession }: DownloadClien
                     Foto #{idx + 1}
                   </span>
                   <button
-                    onClick={() => handleDownload(photo.url!, photo.prefix)}
+                    onClick={() => handleDownload(photo.url!, photo.prefix, 'jpg')}
                     className="w-full py-2 px-3 bg-[var(--color-primary)] text-white text-xs font-bold rounded-lg border border-black shadow-[2px_2px_0_#000] flex items-center justify-center gap-1.5 active:translate-y-0.5 active:shadow-none transition-all"
                   >
                     <Download className="w-3.5 h-3.5" />

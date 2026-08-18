@@ -15,19 +15,17 @@ interface DownloadStudioProps {
   onResetSession: () => void;
 }
 
-const SESS_KEY = 'photobooth-session-id';
+// Module-level variable: survives React StrictMode double-mount
+// Di-clear saat user klik reset, atau saat hard-refresh browser
+let _activeSessionId: string | null = null;
 
 export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSession }: DownloadStudioProps) {
-  // Simpan sessionId di sessionStorage agar stabil meski React StrictMode double-mount
   const [sessionId] = useState<string>(() => {
-    if (typeof window === 'undefined') {
-      return 'c' + Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+    if (!_activeSessionId) {
+      _activeSessionId = 'c' + Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
     }
-    const existing = window.sessionStorage.getItem(SESS_KEY);
-    if (existing) return existing;
-    const newId = 'c' + Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
-    window.sessionStorage.setItem(SESS_KEY, newId);
-    return newId;
+    console.log('[DownloadStudio] Using sessionId:', _activeSessionId);
+    return _activeSessionId;
   });
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [isGeneratingGif, setIsGeneratingGif] = useState<boolean>(false); // GIF dimatikan sementara
@@ -119,7 +117,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
     soundFx.playClickSound();
     const a = document.createElement('a');
     a.href = pngDataUrl;
-    a.download = `medkombox-strip-${Date.now()}.png`;
+    a.download = `medkombox-strip-${Date.now()}.jpg`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -140,7 +138,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
     soundFx.playClickSound();
     const a = document.createElement('a');
     a.href = src;
-    a.download = `medkombox-raw-photo-${index + 1}-${Date.now()}.png`;
+    a.download = `medkombox-raw-photo-${index + 1}-${Date.now()}.jpg`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -367,10 +365,8 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
         <button
           onClick={() => {
             soundFx.playClickSound();
-            // Hapus session ID dari storage agar sesi baru mendapat ID baru
-            if (typeof window !== 'undefined') {
-              window.sessionStorage.removeItem(SESS_KEY);
-            }
+            // Hapus session ID dari memory agar sesi baru mendapat ID baru
+            _activeSessionId = null;
             onResetSession();
           }}
           className="w-full neo-btn-yellow py-3 text-xs font-bold flex items-center justify-center gap-1.5 font-chillax"

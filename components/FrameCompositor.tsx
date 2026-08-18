@@ -179,7 +179,8 @@ export default function FrameCompositor({ photos, onCompositeGenerated, actions 
     if (!canvas || loadedImages.length === 0) return;
     setIsRendering(true);
     await renderStrip(canvas, selectedTemplate, loadedImages, DEFAULT_WATERMARK);
-    onCompositeGenerated(canvas.toDataURL('image/png', 1.0));
+    // Compress strip as JPEG instead of PNG to save payload size (Vercel limit 4.5MB)
+    onCompositeGenerated(canvas.toDataURL('image/jpeg', 0.85));
     setIsRendering(false);
   }, [selectedTemplate, loadedImages, onCompositeGenerated]);
 

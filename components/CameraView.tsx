@@ -134,7 +134,8 @@ export default function CameraView({ onPhotosCaptured }: CameraViewProps) {
       }
       ctx.drawImage(video, 0, 0, width, height);
       ctx.restore();
-      return canvas.toDataURL("image/png", 0.95);
+      // Compress frame as JPEG instead of PNG to save payload size (Vercel limit 4.5MB)
+      return canvas.toDataURL("image/jpeg", 0.85);
     },
     [isMirrored, selectedFilter],
   );
