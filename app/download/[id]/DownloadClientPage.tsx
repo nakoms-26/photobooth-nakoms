@@ -1,26 +1,69 @@
 'use client';
 
-import React from 'react';
-import { Download, Share2, ImageIcon, Film, Camera } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Download, Share2, ImageIcon, Film, Camera, RefreshCw, Sparkles } from 'lucide-react';
 import { soundFx } from '@/lib/soundEffects';
 
-interface DownloadClientPageProps {
+interface SessionDataPayload {
+  id: string;
   pngPath: string;
-  gifPath: string;
-  photo1Path?: string;
-  photo2Path?: string;
-  photo3Path?: string;
-  createdAt: Date;
+  gifPath?: string | null;
+  photo1Path?: string | null;
+  photo2Path?: string | null;
+  photo3Path?: string | null;
+  createdAt: string;
 }
 
-export default function DownloadClientPage({ 
-  pngPath, 
-  gifPath, 
-  photo1Path,
-  photo2Path,
-  photo3Path,
-  createdAt 
-}: DownloadClientPageProps) {
+interface DownloadClientPageProps {
+  id: string;
+  initialSession: SessionDataPayload | null;
+}
+
+export default function DownloadClientPage({ id, initialSession }: DownloadClientPageProps) {
+  const [session, setSession] = useState<SessionDataPayload | null>(initialSession);
+  // Use a ref to control polling so we don't re-trigger the effect when stopping
+  const shouldPollRef = useRef<boolean>(
+    !initialSession || initialSession.gifPath === 'PENDING' || !initialSession.gifPath
+  );
+
+  useEffect(() => {
+    if (!shouldPollRef.current) return;
+
+    let isMounted = true;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const checkStatus = async () => {
+      try {
+        const res = await fetch(`/api/session/${id}`);
+        if (res.ok) {
+          const result = await res.json();
+          if (result.found && result.data && isMounted) {
+            setSession(result.data);
+            const isGifReady = result.data.gifPath && result.data.gifPath !== 'PENDING';
+            if (isGifReady) {
+              shouldPollRef.current = false;
+              return; // Stop polling — GIF is ready
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+
+      if (isMounted && shouldPollRef.current) {
+        timer = setTimeout(checkStatus, 2000);
+      }
+    };
+
+    checkStatus();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [id]); // Only id as dep — polling controlled by ref internally
+
+
   const handleDownload = async (url: string, filenamePrefix: string, extension: string = 'png') => {
     soundFx.playClickSound();
     const filename = `${filenamePrefix}-${Date.now()}.${extension}`;
@@ -83,16 +126,35 @@ export default function DownloadClientPage({
     }
   };
 
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-[var(--color-background)] flex flex-col items-center justify-center p-6 text-center font-sans">
+        <div className="neo-box bg-white p-8 rounded-2xl max-w-sm w-full flex flex-col items-center gap-4">
+          <RefreshCw className="w-10 h-10 text-[var(--color-primary)] animate-spin" />
+          <h2 className="font-chillax font-black text-xl text-[var(--color-primary)]">
+            Menyiapkan Foto Kamu...
+          </h2>
+          <p className="text-xs font-semibold text-gray-600 leading-relaxed">
+            Foto sedang disinkronkan dari photobooth. Halaman ini akan otomatis diperbarui dalam hitungan detik!
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const formattedDate = new Intl.DateTimeFormat('id-ID', {
     dateStyle: 'full',
     timeStyle: 'short'
-  }).format(new Date(createdAt));
+  }).format(new Date(session.createdAt || Date.now()));
 
   const rawPhotos = [
-    { title: 'Foto Mentah #1', url: photo1Path, prefix: 'medkombox-raw-1' },
-    { title: 'Foto Mentah #2', url: photo2Path, prefix: 'medkombox-raw-2' },
-    { title: 'Foto Mentah #3', url: photo3Path, prefix: 'medkombox-raw-3' },
-  ].filter(p => !!p.url);
+    { title: 'Foto Mentah #1', url: session.photo1Path, prefix: 'medkombox-raw-1' },
+    { title: 'Foto Mentah #2', url: session.photo2Path, prefix: 'medkombox-raw-2' },
+    { title: 'Foto Mentah #3', url: session.photo3Path, prefix: 'medkombox-raw-3' },
+  ].filter((p): p is { title: string; url: string; prefix: string } => Boolean(p.url));
+
+
+  const isGifReady = session.gifPath && session.gifPath !== 'PENDING';
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)] py-8 px-4 font-sans">
@@ -107,7 +169,8 @@ export default function DownloadClientPage({
             {formattedDate}
           </p>
           <div className="inline-flex self-center items-center gap-1.5 px-3 py-1 bg-yellow-300 text-black border-2 border-black rounded-full font-chillax font-bold text-xs shadow-[2px_2px_0_#000]">
-            ✨ 5 File Tersedia untuk Didownload
+            <Sparkles className="w-3.5 h-3.5" />
+            5 File Siap Didownload
           </div>
         </div>
 
@@ -125,14 +188,14 @@ export default function DownloadClientPage({
           
           <div className="w-full max-w-[280px] bg-gray-50 border-2 border-gray-200 rounded-xl p-2 overflow-hidden shadow-sm">
             <img 
-              src={pngPath} 
+              src={session.pngPath} 
               alt="Photo Strip" 
               className="w-full h-auto rounded-lg"
             />
           </div>
 
           <button
-            onClick={() => handleDownload(pngPath, 'medkombox-strip', 'png')}
+            onClick={() => handleDownload(session.pngPath, 'medkombox-strip', 'png')}
             className="w-full neo-btn-primary py-4 font-chillax font-bold text-base flex items-center justify-center gap-2 mt-2"
           >
             <Download className="w-5 h-5" />
@@ -152,21 +215,37 @@ export default function DownloadClientPage({
             </span>
           </div>
           
-          <div className="w-full max-w-[320px] bg-gray-50 border-2 border-gray-200 rounded-xl p-2 overflow-hidden shadow-sm">
-            <img 
-              src={gifPath} 
-              alt="Animated GIF" 
-              className="w-full h-auto rounded-lg"
-            />
-          </div>
+          {isGifReady ? (
+            <>
+              <div className="w-full max-w-[320px] bg-gray-50 border-2 border-gray-200 rounded-xl p-2 overflow-hidden shadow-sm">
+                <img 
+                  src={session.gifPath!} 
+                  alt="Animated GIF" 
+                  className="w-full h-auto rounded-lg"
+                />
+              </div>
 
-          <button
-            onClick={() => handleDownload(gifPath, 'medkombox-anim', 'gif')}
-            className="w-full neo-btn-yellow py-4 font-chillax font-bold text-base flex items-center justify-center gap-2 mt-2"
-          >
-            <Download className="w-5 h-5" />
-            Download Video GIF
-          </button>
+              <button
+                onClick={() => handleDownload(session.gifPath!, 'medkombox-anim', 'gif')}
+                className="w-full neo-btn-yellow py-4 font-chillax font-bold text-base flex items-center justify-center gap-2 mt-2"
+              >
+                <Download className="w-5 h-5" />
+                Download Video GIF
+              </button>
+            </>
+          ) : (
+            <div className="w-full min-h-[160px] bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center gap-3 text-center">
+              <RefreshCw className="w-8 h-8 text-[var(--color-primary)] animate-spin" />
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-bold font-chillax text-gray-800">
+                  Menyinkronkan Animasi GIF...
+                </span>
+                <span className="text-xs text-gray-500 font-semibold">
+                  Animasi akan otomatis muncul di sini begitu siap
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 3, 4, 5. Raw Photos Section */}
@@ -225,4 +304,5 @@ export default function DownloadClientPage({
     </div>
   );
 }
+
 

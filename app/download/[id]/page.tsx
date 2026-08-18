@@ -1,4 +1,3 @@
-import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import DownloadClientPage from './DownloadClientPage';
 
@@ -18,7 +17,6 @@ interface SessionRecord {
 export default async function DownloadPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   let session: SessionRecord | null = null;
-  let hasDbError = false;
 
   try {
     const foundSession = await db.sessionData.findUnique({
@@ -48,35 +46,25 @@ export default async function DownloadPage({ params }: { params: Promise<{ id: s
       );
       if (rawRows && rawRows.length > 0) {
         session = rawRows[0];
-      } else {
-        hasDbError = true;
       }
     } catch (rawError) {
       console.error("Database fatal error:", rawError);
-      hasDbError = true;
     }
-  }
-
-  if (hasDbError) {
-    return (
-      <div className="w-full min-h-screen flex items-center justify-center bg-gray-100">
-        <p className="text-red-500 font-bold">Terjadi kesalahan pada server database.</p>
-      </div>
-    );
-  }
-
-  if (!session) {
-    return notFound();
   }
 
   return (
     <DownloadClientPage 
-      pngPath={session.pngPath} 
-      gifPath={session.gifPath} 
-      photo1Path={session.photo1Path ?? undefined}
-      photo2Path={session.photo2Path ?? undefined}
-      photo3Path={session.photo3Path ?? undefined}
-      createdAt={session.createdAt ? new Date(session.createdAt) : new Date()} 
+      id={id}
+      initialSession={session ? {
+        id: session.id,
+        pngPath: session.pngPath,
+        gifPath: session.gifPath,
+        photo1Path: session.photo1Path ?? null,
+        photo2Path: session.photo2Path ?? null,
+        photo3Path: session.photo3Path ?? null,
+        createdAt: session.createdAt ? new Date(session.createdAt).toISOString() : new Date().toISOString(),
+      } : null}
     />
   );
 }
+

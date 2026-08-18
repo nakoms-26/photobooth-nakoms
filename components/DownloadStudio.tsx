@@ -6,7 +6,8 @@ import { Download, Film, Share2, Sparkles, RotateCcw, Check, RefreshCw, Image as
 import { createAnimatedGif } from '@/lib/gifGenerator';
 import { soundFx } from '@/lib/soundEffects';
 import { QRCodeSVG } from 'qrcode.react';
-import { uploadSession } from '@/lib/uploadApi';
+import { uploadInitialSession, uploadGifSession } from '@/lib/uploadApi';
+
 
 interface DownloadStudioProps {
   pngDataUrl: string;
@@ -15,14 +16,15 @@ interface DownloadStudioProps {
 }
 
 export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSession }: DownloadStudioProps) {
+  const [sessionId] = useState<string>(() => 'c' + Date.now().toString(36) + Math.random().toString(36).substring(2, 8));
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [isGeneratingGif, setIsGeneratingGif] = useState<boolean>(true);
+  const [isGifUploaded, setIsGifUploaded] = useState<boolean>(false);
   const [gifError, setGifError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   
   const [isUploading, setIsUploading] = useState<boolean>(true);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
-  const [sessionId, setSessionId] = useState<string | null>(null);
 
   // Helper to load image and extract true aspect ratio
   const getImageDimensions = (src: string): Promise<{ width: number; height: number }> => {
@@ -43,12 +45,30 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
       colors: ['#8e36ff', '#f8d22a', '#f28df8', '#c9a8ff'],
     });
 
-    // Generate Animated GIF asynchronously keeping natural aspect ratio
     let isMounted = true;
-    const generateGif = async () => {
+
+    // 1. PROSES A (PARALEL): Upload PNG Strip + 3 Foto Mentahan ke Server secara instan
+    const startInitialUpload = async () => {
+      setIsUploading(true);
+      let currentProgress = 0;
+      const progressInterval = setInterval(() => {
+        currentProgress += (95 - currentProgress) * 0.12;
+        if (isMounted) setUploadProgress(Math.floor(currentProgress));
+      }, 300);
+
+      const res = await uploadInitialSession(sessionId, pngDataUrl, capturedPhotos);
+      clearInterval(progressInterval);
+      if (isMounted) {
+        setUploadProgress(100);
+        if (!res.success) console.warn('Initial upload failed:', res.error);
+        setIsUploading(false);
+      }
+    };
+
+    // 2. PROSES B (PARALEL): Generate Animated GIF di browser lalu upload GIF
+    const startGifPipeline = async () => {
       setIsGeneratingGif(true);
       
-      // Calculate true aspect ratio from first captured photo
       const dims = await getImageDimensions(capturedPhotos[0]);
       const targetWidth = 480;
       const targetHeight = Math.round(targetWidth * (dims.height / dims.width));
@@ -57,43 +77,30 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
       if (isMounted) {
         if (res.success && res.gifUrl) {
           setGifUrl(res.gifUrl);
-          
-          setIsUploading(true);
-          setUploadProgress(0);
-          
-          // Simulasi progress bar karena upload dari Next.js server ke asset server tidak bisa di-track dari browser
-          let currentProgress = 0;
-          const progressInterval = setInterval(() => {
-            currentProgress += (95 - currentProgress) * 0.08; // Melambat saat mendekati 95%
-            if (isMounted) setUploadProgress(Math.floor(currentProgress));
-          }, 800);
+          setIsGeneratingGif(false);
 
-          uploadSession(pngDataUrl, res.gifUrl, capturedPhotos).then((id) => {
-            clearInterval(progressInterval);
-            if (isMounted) {
-              setUploadProgress(100);
-              setTimeout(() => {
-                if (id) setSessionId(id);
-                setIsUploading(false);
-              }, 500); // Jeda sebentar di 100% biar terlihat halus
-            }
-          });
+          // Upload GIF ke server
+          const gifRes = await uploadGifSession(sessionId, res.gifUrl);
+          if (isMounted && gifRes.success) {
+            setIsGifUploaded(true);
+          }
         } else {
           setGifError(res.error || 'Gagal merender GIF');
-          setIsUploading(false);
+          setIsGeneratingGif(false);
         }
-        setIsGeneratingGif(false);
       }
     };
 
+    // Jalankan keduanya secara bersamaan (tidak saling menunggu)
+    startInitialUpload();
     if (capturedPhotos.length > 0) {
-      generateGif();
+      startGifPipeline();
     }
 
     return () => {
       isMounted = false;
     };
-  }, [capturedPhotos, pngDataUrl]);
+  }, [capturedPhotos, pngDataUrl, sessionId]);
 
   const handleDownloadPng = () => {
     soundFx.playClickSound();
@@ -136,13 +143,13 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
 
   const handleCopyLink = () => {
     soundFx.playClickSound();
-    const url = sessionId 
-      ? `${process.env.NEXT_PUBLIC_BASE_URL || window.location.origin}/download/${sessionId}`
-      : window.location.href;
+    const url = `${process.env.NEXT_PUBLIC_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : '')}/download/${sessionId}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const downloadUrl = `${process.env.NEXT_PUBLIC_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : '')}/download/${sessionId}`;
 
   return (
     <div className="w-full max-w-3xl flex flex-col items-center justify-center gap-6 animate-fadeIn pb-12">
@@ -159,12 +166,12 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
         </p>
       </div>
 
-      {/* ENLARGED QR CODE CARD (TOP PRIORITY FOR SCANNING) */}
+      {/* ENLARGED QR CODE CARD (INSTANT DISPLAY & ZERO-DELAY SCANNING) */}
       <div className="neo-box w-full bg-white p-6 md:p-8 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 border-4 border-black shadow-[6px_6px_0_#000]">
         <div className="flex flex-col items-center md:items-start text-center md:text-left gap-3 max-w-md">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-yellow-300 border-2 border-black rounded-full font-chillax font-black text-xs">
-            <Sparkles className="w-4 h-4 text-black" />
-            SCAN INSTAN DARI HP
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-400 border-2 border-black rounded-full font-chillax font-black text-xs text-black shadow-[2px_2px_0_#000]">
+            <Check className="w-4 h-4 text-black stroke-[3]" />
+            QR CODE SIAP DI-SCAN INSTAN
           </div>
           <h3 className="font-chillax font-black text-2xl md:text-3xl text-[var(--color-primary)]">
             SCAN UNTUK DOWNLOAD!
@@ -172,45 +179,57 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
           <p className="text-sm font-semibold text-[var(--color-text-secondary)] leading-relaxed">
             Arahkan kamera HP ke QR Code di samping untuk membuka halaman download dan menyimpan ke-5 file foto & video GIF kamu secara instan!
           </p>
-          <div className="flex items-center gap-2 text-xs font-bold text-gray-500 mt-1">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            Tersedia: 1 Strip PNG + 1 Boomerang GIF + 3 Foto Mentahan
+          
+          {/* Status Indicators */}
+          <div className="flex flex-col gap-1.5 w-full mt-1">
+            <div className="flex items-center gap-2 text-xs font-bold text-gray-700">
+              {isUploading ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--color-primary)]" />
+                  <span>Menyimpan foto strip & raw... ({uploadProgress}%)</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                  <span>1 Strip PNG + 3 Foto Mentahan siap didownload</span>
+                </>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2 text-xs font-bold text-gray-700">
+              {isGeneratingGif ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-yellow-600" />
+                  <span>Memproses animasi GIF...</span>
+                </>
+              ) : isGifUploaded || gifUrl ? (
+                <>
+                  <span className="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                  <span>Animasi GIF Boomerang siap</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-400"></span>
+                  <span>GIF gagal diproses</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
         
-        {/* Large QR Container */}
+        {/* Large QR Container - Rendered Immediately */}
         <div className="flex-shrink-0 bg-white border-4 border-black p-4 rounded-2xl shadow-[6px_6px_0_#000] flex flex-col items-center justify-center">
-          {isGeneratingGif ? (
-            <div className="w-[190px] h-[190px] flex flex-col items-center justify-center gap-3 bg-gray-50 rounded-xl p-2 text-center">
-              <RefreshCw className="w-10 h-10 animate-spin text-[var(--color-primary)]" />
-              <span className="text-xs font-bold text-gray-600 font-chillax">Membuat Animasi...</span>
-            </div>
-          ) : isUploading ? (
-            <div className="w-[190px] h-[190px] flex flex-col items-center justify-center gap-2 bg-gray-50 rounded-xl p-4 text-center">
-              <RefreshCw className="w-8 h-8 animate-spin text-[var(--color-primary)]" />
-              <span className="text-xs font-bold text-gray-600 font-chillax leading-tight mt-1">Mengunggah Foto...</span>
-              <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                <div className="bg-[var(--color-primary)] h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
-              </div>
-              <span className="text-[10px] font-bold text-gray-500">{uploadProgress === 100 ? 'Menunggu Server...' : `${uploadProgress}%`}</span>
-            </div>
-          ) : sessionId ? (
-            <div className="flex flex-col items-center gap-2">
-              <QRCodeSVG 
-                value={`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/download/${sessionId}`} 
-                size={190}
-                level="M"
-                includeMargin={false}
-              />
-              <span className="text-[10px] font-bold text-gray-500 font-chillax tracking-wider uppercase">
-                Medkom Box Mobile
-              </span>
-            </div>
-          ) : (
-            <div className="w-[190px] h-[190px] flex flex-col items-center justify-center gap-2 bg-red-50 rounded-xl text-red-600 p-3 text-center">
-              <span className="text-xs font-bold font-chillax">Gagal membuat link QR</span>
-            </div>
-          )}
+          <div className="flex flex-col items-center gap-2">
+            <QRCodeSVG 
+              value={downloadUrl} 
+              size={190}
+              level="M"
+              includeMargin={false}
+            />
+            <span className="text-[10px] font-bold text-gray-500 font-chillax tracking-wider uppercase">
+              Medkom Box Mobile
+            </span>
+          </div>
         </div>
       </div>
 

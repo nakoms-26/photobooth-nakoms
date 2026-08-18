@@ -36,18 +36,55 @@ async function uploadToAssetServer(base64: string, filename: string, mimeType: s
 
 export async function POST(req: Request) {
   try {
-    const { pngBase64, gifBase64, rawPhotos = [] } = await req.json();
-
-    if (!pngBase64 || !gifBase64) {
-      return NextResponse.json({ error: 'Missing images' }, { status: 400 });
-    }
+    const body = await req.json();
+    const { action, sessionId: incomingSessionId, pngBase64, gifBase64, rawPhotos = [] } = body;
 
     const timestamp = Date.now();
 
-    // Mulai semua upload secara bersamaan (paralel) untuk menghemat waktu
+    // 1. ACTION: UPLOAD GIF ONLY (Async update after GIF generation finishes)
+    if (action === 'upload-gif' || (gifBase64 && !pngBase64)) {
+      if (!incomingSessionId) {
+        return NextResponse.json({ error: 'Missing sessionId for GIF update' }, { status: 400 });
+      }
+
+      const gifUrl = await uploadToAssetServer(gifBase64, `photo_anim_${timestamp}.gif`, 'image/gif');
+
+      try {
+        await db.sessionData.update({
+          where: { id: incomingSessionId },
+          data: { gifPath: gifUrl },
+        });
+      } catch (updateErr) {
+        console.warn('Prisma update error for gifPath, trying raw query:', updateErr);
+        try {
+          await db.$executeRawUnsafe(
+            `UPDATE SessionData SET gifPath = ? WHERE id = ?`,
+            gifUrl, incomingSessionId
+          );
+        } catch (rawErr) {
+          console.error('Raw query update error:', rawErr);
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        id: incomingSessionId,
+        gifUrl,
+      });
+    }
+
+    // 2. ACTION: INITIAL UPLOAD (PNG + 3 Raw Photos uploaded in parallel)
+    if (!pngBase64) {
+      return NextResponse.json({ error: 'Missing pngBase64 image' }, { status: 400 });
+    }
+
+    const sessionId = incomingSessionId || ('c' + timestamp.toString(36) + Math.random().toString(36).substring(2, 7));
+
     const pngUploadPromise = uploadToAssetServer(pngBase64, `photo_strip_${timestamp}.png`, 'image/png');
-    const gifUploadPromise = uploadToAssetServer(gifBase64, `photo_anim_${timestamp}.gif`, 'image/gif');
-    
+    const gifUploadPromise = gifBase64 
+      ? uploadToAssetServer(gifBase64, `photo_anim_${timestamp}.gif`, 'image/gif')
+      : Promise.resolve('PENDING');
+
     const raw1Promise = (rawPhotos && rawPhotos[0]) ? uploadToAssetServer(rawPhotos[0], `raw_photo_1_${timestamp}.png`, 'image/png') : Promise.resolve(null);
     const raw2Promise = (rawPhotos && rawPhotos[1]) ? uploadToAssetServer(rawPhotos[1], `raw_photo_2_${timestamp}.png`, 'image/png') : Promise.resolve(null);
     const raw3Promise = (rawPhotos && rawPhotos[2]) ? uploadToAssetServer(rawPhotos[2], `raw_photo_3_${timestamp}.png`, 'image/png') : Promise.resolve(null);
@@ -60,11 +97,11 @@ export async function POST(req: Request) {
       raw3Promise.catch(e => { console.error('Raw 3 error:', e); return null; })
     ]);
 
-    // 3. Simpan ke database dengan fallback aman jika Prisma client belum di-restart
-    let sessionId: string;
+    // Simpan ke database
     try {
-      const session = await db.sessionData.create({
+      await db.sessionData.create({
         data: {
+          id: sessionId,
           pngPath: pngUrl,
           gifPath: gifUrl,
           photo1Path: photo1Url,
@@ -72,25 +109,22 @@ export async function POST(req: Request) {
           photo3Path: photo3Url,
         }
       });
-      sessionId = session.id;
     } catch (dbErr) {
       console.warn('Prisma create error, mencoba fallback raw query:', dbErr);
       try {
-        const generatedId = 'c' + Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
         await db.$executeRawUnsafe(
           `INSERT INTO SessionData (id, pngPath, gifPath, photo1Path, photo2Path, photo3Path, createdAt) VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-          generatedId, pngUrl, gifUrl, photo1Url, photo2Url, photo3Url
+          sessionId, pngUrl, gifUrl, photo1Url, photo2Url, photo3Url
         );
-        sessionId = generatedId;
       } catch (rawErr) {
         console.warn('Raw query fallback error, fallback ke standard fields:', rawErr);
-        const fallbackSession = await db.sessionData.create({
+        await db.sessionData.create({
           data: {
+            id: sessionId,
             pngPath: pngUrl,
             gifPath: gifUrl,
           }
         });
-        sessionId = fallbackSession.id;
       }
     }
 
@@ -113,4 +147,5 @@ export async function POST(req: Request) {
     }, { status: 500 });
   }
 }
+
 

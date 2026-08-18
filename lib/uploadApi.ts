@@ -1,9 +1,25 @@
-export const uploadSession = async (
+export interface InitialUploadResponse {
+  success: boolean;
+  id?: string;
+  pngUrl?: string;
+  photo1Url?: string | null;
+  photo2Url?: string | null;
+  photo3Url?: string | null;
+  error?: string;
+}
+
+export interface GifUploadResponse {
+  success: boolean;
+  gifUrl?: string;
+  error?: string;
+}
+
+export const uploadInitialSession = async (
+  sessionId: string,
   pngBase64: string,
-  gifBase64: string,
   rawPhotos: string[] = [],
   onProgress?: (percent: number) => void
-): Promise<string | null> => {
+): Promise<InitialUploadResponse> => {
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/upload");
@@ -22,32 +38,83 @@ export const uploadSession = async (
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           const result = JSON.parse(xhr.responseText);
-          if (result.success) {
-            resolve(result.id);
-          } else {
-            console.error("Gagal upload:", result.error);
-            resolve(null);
-          }
+          resolve(result);
         } catch (error) {
-          console.error("Failed to parse response:", error);
-          resolve(null);
+          console.error("Failed to parse initial upload response:", error);
+          resolve({ success: false, error: "Gagal memproses respons server" });
         }
       } else {
-        console.error("Server error:", xhr.statusText);
-        resolve(null);
+        console.error("Server error initial upload:", xhr.statusText);
+        resolve({ success: false, error: xhr.statusText });
       }
     };
 
     xhr.onerror = () => {
-      console.error("Network Error during upload");
-      resolve(null);
+      console.error("Network Error during initial upload");
+      resolve({ success: false, error: "Kesalahan jaringan saat upload foto" });
     };
 
     xhr.send(JSON.stringify({
+      action: 'initial',
+      sessionId,
       pngBase64,
-      gifBase64,
       rawPhotos,
     }));
   });
 };
+
+export const uploadGifSession = async (
+  sessionId: string,
+  gifBase64: string
+): Promise<GifUploadResponse> => {
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/upload");
+    xhr.setRequestHeader("Content-Type", "application/json");
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const result = JSON.parse(xhr.responseText);
+          resolve(result);
+        } catch (error) {
+          console.error("Failed to parse GIF upload response:", error);
+          resolve({ success: false, error: "Gagal memproses respons server GIF" });
+        }
+      } else {
+        console.error("Server error GIF upload:", xhr.statusText);
+        resolve({ success: false, error: xhr.statusText });
+      }
+    };
+
+    xhr.onerror = () => {
+      console.error("Network Error during GIF upload");
+      resolve({ success: false, error: "Kesalahan jaringan saat upload GIF" });
+    };
+
+    xhr.send(JSON.stringify({
+      action: 'upload-gif',
+      sessionId,
+      gifBase64,
+    }));
+  });
+};
+
+export const uploadSession = async (
+  pngBase64: string,
+  gifBase64: string,
+  rawPhotos: string[] = [],
+  onProgress?: (percent: number) => void
+): Promise<string | null> => {
+  const sessionId = 'c' + Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+  const initialRes = await uploadInitialSession(sessionId, pngBase64, rawPhotos, onProgress);
+  if (!initialRes.success || !initialRes.id) {
+    return null;
+  }
+  if (gifBase64) {
+    uploadGifSession(initialRes.id, gifBase64).catch((err) => console.error("GIF upload async error:", err));
+  }
+  return initialRes.id;
+};
+
 
