@@ -21,11 +21,45 @@ export default function DownloadClientPage({
   photo3Path,
   createdAt 
 }: DownloadClientPageProps) {
-  const handleDownload = (url: string, filenamePrefix: string) => {
+  const handleDownload = async (url: string, filenamePrefix: string, extension: string = 'png') => {
     soundFx.playClickSound();
+    const filename = `${filenamePrefix}-${Date.now()}.${extension}`;
+
+    // 1. If base64 data url
+    if (url.startsWith('data:')) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
+
+    // 2. Try client-side fetch -> blob download
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const blob = await res.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1500);
+        return;
+      }
+    } catch {
+      // CORS fallback to proxy
+    }
+
+    // 3. Server-side attachment proxy directly triggers browser native download dialog
+    const proxyUrl = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `${filenamePrefix}-${Date.now()}.png`;
+    a.href = proxyUrl;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -98,7 +132,7 @@ export default function DownloadClientPage({
           </div>
 
           <button
-            onClick={() => handleDownload(pngPath, 'medkombox-strip')}
+            onClick={() => handleDownload(pngPath, 'medkombox-strip', 'png')}
             className="w-full neo-btn-primary py-4 font-chillax font-bold text-base flex items-center justify-center gap-2 mt-2"
           >
             <Download className="w-5 h-5" />
@@ -127,7 +161,7 @@ export default function DownloadClientPage({
           </div>
 
           <button
-            onClick={() => handleDownload(gifPath, 'medkombox-anim')}
+            onClick={() => handleDownload(gifPath, 'medkombox-anim', 'gif')}
             className="w-full neo-btn-yellow py-4 font-chillax font-bold text-base flex items-center justify-center gap-2 mt-2"
           >
             <Download className="w-5 h-5" />
