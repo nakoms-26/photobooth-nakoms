@@ -21,9 +21,9 @@ interface DownloadClientPageProps {
 
 export default function DownloadClientPage({ id, initialSession }: DownloadClientPageProps) {
   const [session, setSession] = useState<SessionDataPayload | null>(initialSession);
-  // Use a ref to control polling so we don't re-trigger the effect when stopping
-  // TODO: Re-enable polling setelah GIF pipeline aktif kembali
-  const shouldPollRef = useRef<boolean>(false);
+  // Poll sampai sesi ditemukan di database (upload PNG bisa memakan beberapa detik)
+  // GIF polling dimatikan — hanya tunggu sampai session ada
+  const shouldPollRef = useRef<boolean>(!initialSession);
 
 
   useEffect(() => {
@@ -39,11 +39,9 @@ export default function DownloadClientPage({ id, initialSession }: DownloadClien
           const result = await res.json();
           if (result.found && result.data && isMounted) {
             setSession(result.data);
-            const isGifReady = result.data.gifPath && result.data.gifPath !== 'PENDING';
-            if (isGifReady) {
-              shouldPollRef.current = false;
-              return; // Stop polling — GIF is ready
-            }
+            // Berhenti polling begitu session ditemukan di database
+            shouldPollRef.current = false;
+            return;
           }
         }
       } catch (err) {
