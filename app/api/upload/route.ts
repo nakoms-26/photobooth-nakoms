@@ -86,7 +86,7 @@ export async function POST(req: Request) {
 
     const gifUploadPromise = gifBase64
       ? uploadToAssetServer(gifBase64, `photo_anim_${timestamp}.gif`, 'image/gif')
-      : Promise.resolve('PENDING');
+      : Promise.resolve(''); // GIF dinonaktifkan sementara — simpan empty string di DB
 
     const raw1Promise = (rawPhotos && rawPhotos[0]) ? uploadToAssetServer(rawPhotos[0], `raw_photo_1_${timestamp}.png`, 'image/png') : Promise.resolve(null);
     const raw2Promise = (rawPhotos && rawPhotos[1]) ? uploadToAssetServer(rawPhotos[1], `raw_photo_2_${timestamp}.png`, 'image/png') : Promise.resolve(null);

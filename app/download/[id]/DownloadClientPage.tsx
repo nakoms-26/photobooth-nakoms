@@ -22,9 +22,9 @@ interface DownloadClientPageProps {
 export default function DownloadClientPage({ id, initialSession }: DownloadClientPageProps) {
   const [session, setSession] = useState<SessionDataPayload | null>(initialSession);
   // Use a ref to control polling so we don't re-trigger the effect when stopping
-  const shouldPollRef = useRef<boolean>(
-    !initialSession || initialSession.gifPath === 'PENDING' || !initialSession.gifPath
-  );
+  // TODO: Re-enable polling setelah GIF pipeline aktif kembali
+  const shouldPollRef = useRef<boolean>(false);
+
 
   useEffect(() => {
     if (!shouldPollRef.current) return;

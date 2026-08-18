@@ -18,9 +18,9 @@ interface DownloadStudioProps {
 export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSession }: DownloadStudioProps) {
   const [sessionId] = useState<string>(() => 'c' + Date.now().toString(36) + Math.random().toString(36).substring(2, 8));
   const [gifUrl, setGifUrl] = useState<string | null>(null);
-  const [isGeneratingGif, setIsGeneratingGif] = useState<boolean>(true);
+  const [isGeneratingGif, setIsGeneratingGif] = useState<boolean>(false); // GIF dimatikan sementara
   const [isGifUploaded, setIsGifUploaded] = useState<boolean>(false);
-  const [gifError, setGifError] = useState<string | null>(null);
+  const [gifError, setGifError] = useState<string | null>('GIF dinonaktifkan sementara');
   const [copied, setCopied] = useState(false);
   
   const [isUploading, setIsUploading] = useState<boolean>(true);
@@ -91,11 +91,12 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
       }
     };
 
-    // Jalankan keduanya secara bersamaan (tidak saling menunggu)
+    // Jalankan hanya initial upload (GIF dimatikan sementara)
     startInitialUpload();
-    if (capturedPhotos.length > 0) {
-      startGifPipeline();
-    }
+    // TODO: Re-enable GIF pipeline setelah asset server difix
+    // if (capturedPhotos.length > 0) {
+    //   startGifPipeline();
+    // }
 
     return () => {
       isMounted = false;
@@ -162,7 +163,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
           <Sparkles className="w-6 h-6 text-[#f8d22a] animate-spin" />
         </div>
         <p className="text-xs font-bold text-white/90">
-          Foto kamu telah berhasil digabungkan dalam frame PNG, animasi GIF, & 3 foto mentahan!
+          Foto kamu telah berhasil disimpan! Strip PNG & 3 foto mentahan siap didownload.
         </p>
       </div>
 
@@ -192,25 +193,6 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
                 <>
                   <span className="w-2.5 h-2.5 rounded-full bg-green-500"></span>
                   <span>1 Strip PNG + 3 Foto Mentahan siap didownload</span>
-                </>
-              )}
-            </div>
-            
-            <div className="flex items-center gap-2 text-xs font-bold text-gray-700">
-              {isGeneratingGif ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-yellow-600" />
-                  <span>Memproses animasi GIF...</span>
-                </>
-              ) : isGifUploaded || gifUrl ? (
-                <>
-                  <span className="w-2.5 h-2.5 rounded-full bg-green-500"></span>
-                  <span>Animasi GIF Boomerang siap</span>
-                </>
-              ) : (
-                <>
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-400"></span>
-                  <span>GIF gagal diproses</span>
                 </>
               )}
             </div>
