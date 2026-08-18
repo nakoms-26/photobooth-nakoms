@@ -21,6 +21,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
   const [copied, setCopied] = useState(false);
   
   const [isUploading, setIsUploading] = useState<boolean>(true);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   // Helper to load image and extract true aspect ratio
@@ -57,13 +58,25 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
         if (res.success && res.gifUrl) {
           setGifUrl(res.gifUrl);
           
-          // Upload Both PNG, GIF, and 3 Raw Photos in one request
           setIsUploading(true);
+          setUploadProgress(0);
+          
+          // Simulasi progress bar karena upload dari Next.js server ke asset server tidak bisa di-track dari browser
+          let currentProgress = 0;
+          const progressInterval = setInterval(() => {
+            currentProgress += (95 - currentProgress) * 0.08; // Melambat saat mendekati 95%
+            if (isMounted) setUploadProgress(Math.floor(currentProgress));
+          }, 800);
+
           uploadSession(pngDataUrl, res.gifUrl, capturedPhotos).then((id) => {
-            if (isMounted && id) {
-              setSessionId(id);
+            clearInterval(progressInterval);
+            if (isMounted) {
+              setUploadProgress(100);
+              setTimeout(() => {
+                if (id) setSessionId(id);
+                setIsUploading(false);
+              }, 500); // Jeda sebentar di 100% biar terlihat halus
             }
-            if (isMounted) setIsUploading(false);
           });
         } else {
           setGifError(res.error || 'Gagal merender GIF');
@@ -167,10 +180,19 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
         
         {/* Large QR Container */}
         <div className="flex-shrink-0 bg-white border-4 border-black p-4 rounded-2xl shadow-[6px_6px_0_#000] flex flex-col items-center justify-center">
-          {isUploading || isGeneratingGif ? (
-            <div className="w-[190px] h-[190px] flex flex-col items-center justify-center gap-3 bg-gray-50 rounded-xl">
+          {isGeneratingGif ? (
+            <div className="w-[190px] h-[190px] flex flex-col items-center justify-center gap-3 bg-gray-50 rounded-xl p-2 text-center">
               <RefreshCw className="w-10 h-10 animate-spin text-[var(--color-primary)]" />
-              <span className="text-xs font-bold text-gray-600 font-chillax">Membuat QR...</span>
+              <span className="text-xs font-bold text-gray-600 font-chillax">Membuat Animasi...</span>
+            </div>
+          ) : isUploading ? (
+            <div className="w-[190px] h-[190px] flex flex-col items-center justify-center gap-2 bg-gray-50 rounded-xl p-4 text-center">
+              <RefreshCw className="w-8 h-8 animate-spin text-[var(--color-primary)]" />
+              <span className="text-xs font-bold text-gray-600 font-chillax leading-tight mt-1">Mengunggah Foto...</span>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                <div className="bg-[var(--color-primary)] h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+              </div>
+              <span className="text-[10px] font-bold text-gray-500">{uploadProgress === 100 ? 'Menunggu Server...' : `${uploadProgress}%`}</span>
             </div>
           ) : sessionId ? (
             <div className="flex flex-col items-center gap-2">

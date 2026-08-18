@@ -44,28 +44,21 @@ export async function POST(req: Request) {
 
     const timestamp = Date.now();
 
-    // 1. Upload file utama (PNG strip & GIF)
-    const [pngUrl, gifUrl] = await Promise.all([
-      uploadToAssetServer(pngBase64, `photo_strip_${timestamp}.png`, 'image/png'),
-      uploadToAssetServer(gifBase64, `photo_anim_${timestamp}.gif`, 'image/gif'),
+    // Mulai semua upload secara bersamaan (paralel) untuk menghemat waktu
+    const pngUploadPromise = uploadToAssetServer(pngBase64, `photo_strip_${timestamp}.png`, 'image/png');
+    const gifUploadPromise = uploadToAssetServer(gifBase64, `photo_anim_${timestamp}.gif`, 'image/gif');
+    
+    const raw1Promise = (rawPhotos && rawPhotos[0]) ? uploadToAssetServer(rawPhotos[0], `raw_photo_1_${timestamp}.png`, 'image/png') : Promise.resolve(null);
+    const raw2Promise = (rawPhotos && rawPhotos[1]) ? uploadToAssetServer(rawPhotos[1], `raw_photo_2_${timestamp}.png`, 'image/png') : Promise.resolve(null);
+    const raw3Promise = (rawPhotos && rawPhotos[2]) ? uploadToAssetServer(rawPhotos[2], `raw_photo_3_${timestamp}.png`, 'image/png') : Promise.resolve(null);
+
+    const [pngUrl, gifUrl, photo1Url, photo2Url, photo3Url] = await Promise.all([
+      pngUploadPromise,
+      gifUploadPromise,
+      raw1Promise.catch(e => { console.error('Raw 1 error:', e); return null; }),
+      raw2Promise.catch(e => { console.error('Raw 2 error:', e); return null; }),
+      raw3Promise.catch(e => { console.error('Raw 3 error:', e); return null; })
     ]);
-
-    // 2. Upload raw photos dengan safe fallback (jika salah satu gagal tidak membatalkan seluruh sesi)
-    let photo1Url: string | null = null;
-    let photo2Url: string | null = null;
-    let photo3Url: string | null = null;
-
-    if (rawPhotos && rawPhotos.length > 0) {
-      const rawUploadResults = await Promise.allSettled([
-        rawPhotos[0] ? uploadToAssetServer(rawPhotos[0], `raw_photo_1_${timestamp}.png`, 'image/png') : Promise.resolve(null),
-        rawPhotos[1] ? uploadToAssetServer(rawPhotos[1], `raw_photo_2_${timestamp}.png`, 'image/png') : Promise.resolve(null),
-        rawPhotos[2] ? uploadToAssetServer(rawPhotos[2], `raw_photo_3_${timestamp}.png`, 'image/png') : Promise.resolve(null),
-      ]);
-
-      if (rawUploadResults[0]?.status === 'fulfilled') photo1Url = rawUploadResults[0].value;
-      if (rawUploadResults[1]?.status === 'fulfilled') photo2Url = rawUploadResults[1].value;
-      if (rawUploadResults[2]?.status === 'fulfilled') photo3Url = rawUploadResults[2].value;
-    }
 
     // 3. Simpan ke database dengan fallback aman jika Prisma client belum di-restart
     let sessionId: string;
