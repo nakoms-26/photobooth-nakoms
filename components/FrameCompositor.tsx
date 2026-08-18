@@ -12,7 +12,7 @@ interface FrameCompositorProps {
 }
 
 const TEMPLATES = FRAME_TEMPLATES.filter(t => t.photoCount === 3);
-const DEFAULT_WATERMARK = 'SNAPKOMS MEMORIES';
+const DEFAULT_WATERMARK = 'MEDKOM BOX MEMORIES';
 
 // Renders a photo strip onto a given canvas with the given template
 async function renderStrip(
@@ -60,6 +60,10 @@ async function renderStrip(
     await new Promise<void>((resolve) => {
       frameImg.onload = () => {
         ctx.drawImage(frameImg, 0, 0, W, H);
+        resolve();
+      };
+      frameImg.onerror = (err) => {
+        console.error('Failed to load frame image:', template.frameUrl, err);
         resolve();
       };
       frameImg.src = template.frameUrl!;
@@ -145,6 +149,7 @@ export default function FrameCompositor({ photos, onCompositeGenerated, actions 
   const mainCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [templateIndex, setTemplateIndex] = useState(0);
   const [loadedImages, setLoadedImages] = useState<HTMLImageElement[]>([]);
+  const [isRendering, setIsRendering] = useState(false);
   // Track swipe
   const touchStartX = useRef<number | null>(null);
 
@@ -169,11 +174,13 @@ export default function FrameCompositor({ photos, onCompositeGenerated, actions 
   }, [photos]);
 
   // Re-render main canvas whenever template or images change
-  const renderMain = useCallback(() => {
+  const renderMain = useCallback(async () => {
     const canvas = mainCanvasRef.current;
     if (!canvas || loadedImages.length === 0) return;
-    renderStrip(canvas, selectedTemplate, loadedImages, DEFAULT_WATERMARK);
+    setIsRendering(true);
+    await renderStrip(canvas, selectedTemplate, loadedImages, DEFAULT_WATERMARK);
     onCompositeGenerated(canvas.toDataURL('image/png', 1.0));
+    setIsRendering(false);
   }, [selectedTemplate, loadedImages, onCompositeGenerated]);
 
   useEffect(() => { renderMain(); }, [renderMain]);
@@ -236,6 +243,11 @@ export default function FrameCompositor({ photos, onCompositeGenerated, actions 
             className="h-full w-auto object-contain rounded-2xl"
             style={{ maxHeight: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}
           />
+          {isRendering && (
+            <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] rounded-2xl flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          )}
         </div>
 
         {/* Right arrow */}

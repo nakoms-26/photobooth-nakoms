@@ -1,4 +1,8 @@
-export const uploadSession = async (pngBase64: string, gifBase64: string): Promise<string | null> => {
+export const uploadSession = async (
+  pngBase64: string,
+  gifBase64: string,
+  rawPhotos: string[] = []
+): Promise<string | null> => {
   try {
     const response = await fetch("/api/upload", {
       method: "POST",
@@ -7,7 +11,8 @@ export const uploadSession = async (pngBase64: string, gifBase64: string): Promi
       },
       body: JSON.stringify({
         pngBase64,
-        gifBase64
+        gifBase64,
+        rawPhotos,
       }),
     });
     
@@ -23,3 +28,4 @@ export const uploadSession = async (pngBase64: string, gifBase64: string): Promi
     return null;
   }
 };
+

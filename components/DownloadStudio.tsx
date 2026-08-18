@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Download, Film, Share2, Sparkles, RotateCcw, Check, RefreshCw, Image as ImageIcon } from 'lucide-react';
+import { Download, Film, Share2, Sparkles, RotateCcw, Check, RefreshCw, Image as ImageIcon, Camera } from 'lucide-react';
 import { createAnimatedGif } from '@/lib/gifGenerator';
 import { soundFx } from '@/lib/soundEffects';
 import { QRCodeSVG } from 'qrcode.react';
@@ -57,9 +57,9 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
         if (res.success && res.gifUrl) {
           setGifUrl(res.gifUrl);
           
-          // Upload Both PNG and GIF in one request
+          // Upload Both PNG, GIF, and 3 Raw Photos in one request
           setIsUploading(true);
-          uploadSession(pngDataUrl, res.gifUrl).then((id) => {
+          uploadSession(pngDataUrl, res.gifUrl, capturedPhotos).then((id) => {
             if (isMounted && id) {
               setSessionId(id);
             }
@@ -86,7 +86,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
     soundFx.playClickSound();
     const a = document.createElement('a');
     a.href = pngDataUrl;
-    a.download = `snapkoms-${Date.now()}.png`;
+    a.download = `medkombox-strip-${Date.now()}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -97,21 +97,42 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
     soundFx.playClickSound();
     const a = document.createElement('a');
     a.href = gifUrl;
-    a.download = `snapkoms-animation-${Date.now()}.gif`;
+    a.download = `medkombox-animation-${Date.now()}.gif`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   };
 
+  const handleDownloadRawPhoto = (src: string, index: number) => {
+    soundFx.playClickSound();
+    const a = document.createElement('a');
+    a.href = src;
+    a.download = `medkombox-raw-photo-${index + 1}-${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleDownloadAllRaw = () => {
+    capturedPhotos.forEach((photo, idx) => {
+      setTimeout(() => {
+        handleDownloadRawPhoto(photo, idx);
+      }, idx * 250);
+    });
+  };
+
   const handleCopyLink = () => {
     soundFx.playClickSound();
-    navigator.clipboard.writeText(window.location.href);
+    const url = sessionId 
+      ? `${process.env.NEXT_PUBLIC_BASE_URL || window.location.origin}/download/${sessionId}`
+      : window.location.href;
+    navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="w-full max-w-3xl flex flex-col items-center justify-center gap-6 animate-fadeIn">
+    <div className="w-full max-w-3xl flex flex-col items-center justify-center gap-6 animate-fadeIn pb-12">
       
       {/* Header Banner */}
       <div className="neo-box-yellow p-4 w-full text-center flex flex-col items-center gap-1">
@@ -121,19 +142,65 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
           <Sparkles className="w-6 h-6 text-[#f8d22a] animate-spin" />
         </div>
         <p className="text-xs font-bold text-white/90">
-          Foto kamu telah berhasil digabungkan dalam frame PNG & animasi GIF!
+          Foto kamu telah berhasil digabungkan dalam frame PNG, animasi GIF, & 3 foto mentahan!
         </p>
+      </div>
+
+      {/* ENLARGED QR CODE CARD (TOP PRIORITY FOR SCANNING) */}
+      <div className="neo-box w-full bg-white p-6 md:p-8 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 border-4 border-black shadow-[6px_6px_0_#000]">
+        <div className="flex flex-col items-center md:items-start text-center md:text-left gap-3 max-w-md">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-yellow-300 border-2 border-black rounded-full font-chillax font-black text-xs">
+            <Sparkles className="w-4 h-4 text-black" />
+            SCAN INSTAN DARI HP
+          </div>
+          <h3 className="font-chillax font-black text-2xl md:text-3xl text-[var(--color-primary)]">
+            SCAN UNTUK DOWNLOAD!
+          </h3>
+          <p className="text-sm font-semibold text-[var(--color-text-secondary)] leading-relaxed">
+            Arahkan kamera HP ke QR Code di samping untuk membuka halaman download dan menyimpan ke-5 file foto & video GIF kamu secara instan!
+          </p>
+          <div className="flex items-center gap-2 text-xs font-bold text-gray-500 mt-1">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            Tersedia: 1 Strip PNG + 1 Boomerang GIF + 3 Foto Mentahan
+          </div>
+        </div>
+        
+        {/* Large QR Container */}
+        <div className="flex-shrink-0 bg-white border-4 border-black p-4 rounded-2xl shadow-[6px_6px_0_#000] flex flex-col items-center justify-center">
+          {isUploading || isGeneratingGif ? (
+            <div className="w-[190px] h-[190px] flex flex-col items-center justify-center gap-3 bg-gray-50 rounded-xl">
+              <RefreshCw className="w-10 h-10 animate-spin text-[var(--color-primary)]" />
+              <span className="text-xs font-bold text-gray-600 font-chillax">Membuat QR...</span>
+            </div>
+          ) : sessionId ? (
+            <div className="flex flex-col items-center gap-2">
+              <QRCodeSVG 
+                value={`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/download/${sessionId}`} 
+                size={190}
+                level="M"
+                includeMargin={false}
+              />
+              <span className="text-[10px] font-bold text-gray-500 font-chillax tracking-wider uppercase">
+                Medkom Box Mobile
+              </span>
+            </div>
+          ) : (
+            <div className="w-[190px] h-[190px] flex flex-col items-center justify-center gap-2 bg-red-50 rounded-xl text-red-600 p-3 text-center">
+              <span className="text-xs font-bold font-chillax">Gagal membuat link QR</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Dual Preview Cards (PNG Strip + Animated GIF) */}
       <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         
-        {/* PNG Photo Strip Card */}
+        {/* 1. PNG Photo Strip Card */}
         <div className="neo-box rounded-2xl p-4 bg-[#ffffff] flex flex-col items-center gap-3">
           <div className="w-full flex items-center justify-between border-b-2 border-[#202030] pb-2">
             <span className="text-xs font-extrabold uppercase text-[#8e36ff] font-chillax flex items-center gap-1">
               <ImageIcon className="w-4 h-4" />
-              PHOTO STRIP (PNG)
+              1. PHOTO STRIP (FRAME PNG)
             </span>
             <span className="text-[10px] bg-[#faf8ff] text-[#8e36ff] px-2 py-0.5 rounded-md font-bold border border-[#202030]">
               HIGH RES
@@ -157,12 +224,12 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
           </button>
         </div>
 
-        {/* Animated GIF Boomerang Card */}
+        {/* 2. Animated GIF Boomerang Card */}
         <div className="neo-box rounded-2xl p-4 bg-[#ffffff] flex flex-col items-center gap-3">
           <div className="w-full flex items-center justify-between border-b-2 border-[#202030] pb-2">
             <span className="text-xs font-extrabold uppercase text-[#8e36ff] font-chillax flex items-center gap-1">
               <Film className="w-4 h-4" />
-              ANIMATED GIF (LOOP)
+              2. ANIMATED GIF (LOOP)
             </span>
             <span className="text-[10px] bg-[#faf8ff] text-[#8e36ff] px-2 py-0.5 rounded-md font-bold border border-[#202030]">
               BOOMERANG
@@ -201,35 +268,56 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
         </div>
       </div>
 
-      {/* SINGLE QR CODE FOR DOWNLOAD PAGE */}
-      <div className="neo-box w-full bg-white p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex flex-col items-center md:items-start text-center md:text-left gap-2">
-          <h3 className="font-chillax font-black text-2xl text-[var(--color-primary)]">
-            SCAN UNTUK DOWNLOAD!
-          </h3>
-          <p className="text-sm font-semibold text-[var(--color-text-secondary)] max-w-sm">
-            Scan QR code di samping menggunakan HP kamu untuk mengunduh foto dan video GIF secara langsung.
-          </p>
+      {/* 3, 4, 5. RAW PHOTOS EXPORT SECTION */}
+      {capturedPhotos.length > 0 && (
+        <div className="neo-box w-full bg-white p-5 rounded-2xl flex flex-col gap-4">
+          <div className="w-full flex items-center justify-between border-b-2 border-[#202030] pb-2">
+            <span className="text-xs font-extrabold uppercase text-[#8e36ff] font-chillax flex items-center gap-1.5">
+              <Camera className="w-4 h-4 text-[var(--color-primary)]" />
+              3, 4, 5. FOTO ASLI / MENTAHAN (RAW SHOTS)
+            </span>
+            <button
+              onClick={handleDownloadAllRaw}
+              className="text-[10px] bg-yellow-300 hover:bg-yellow-400 text-black px-2.5 py-1 rounded-md font-bold border border-black shadow-[2px_2px_0_#000] flex items-center gap-1 transition-all active:translate-y-0.5 active:shadow-none"
+            >
+              <Download className="w-3 h-3" />
+              DOWNLOAD 3 FOTO SEKALIGUS
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {capturedPhotos.map((photo, idx) => (
+              <div 
+                key={idx} 
+                className="flex flex-col items-center gap-2 bg-[#faf8ff] p-2.5 rounded-xl border-2 border-[#202030]"
+              >
+                <div className="w-full aspect-[4/3] rounded-lg overflow-hidden border border-black/20 bg-black/5">
+                  <img 
+                    src={photo} 
+                    alt={`Foto Mentahan #${idx + 1}`} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="w-full flex items-center justify-between px-1">
+                  <span className="font-chillax font-bold text-xs text-black">
+                    Foto #{idx + 1}
+                  </span>
+                  <span className="text-[9px] text-gray-500 font-bold uppercase">
+                    Raw Shot
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleDownloadRawPhoto(photo, idx)}
+                  className="w-full py-2 px-3 bg-[var(--color-primary)] text-white text-xs font-bold rounded-lg border border-black shadow-[2px_2px_0_#000] flex items-center justify-center gap-1.5 active:translate-y-0.5 active:shadow-none font-chillax transition-all"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  DOWNLOAD #{idx + 1}
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
-        
-        <div className="flex-shrink-0 bg-white border-4 border-black p-3 rounded-xl shadow-[4px_4px_0_#000]">
-          {isUploading || isGeneratingGif ? (
-            <div className="w-[120px] h-[120px] flex flex-col items-center justify-center gap-2 bg-gray-100 rounded-lg">
-              <RefreshCw className="w-8 h-8 animate-spin text-[var(--color-primary)]" />
-              <span className="text-[10px] font-bold">Membuat Link...</span>
-            </div>
-          ) : sessionId ? (
-            <QRCodeSVG 
-              value={`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/download/${sessionId}`} 
-              size={120} 
-            />
-          ) : (
-            <div className="w-[120px] h-[120px] flex flex-col items-center justify-center gap-2 bg-red-100 rounded-lg text-red-600 p-2 text-center">
-              <span className="text-[10px] font-bold">Gagal membuat QR</span>
-            </div>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Action Buttons Row */}
       <div className="w-full flex flex-col sm:flex-row items-center gap-3">
@@ -238,7 +326,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
           className="w-full neo-btn py-3 bg-[#f28df8] text-[#202030] text-xs font-bold flex items-center justify-center gap-1.5 font-chillax"
         >
           {copied ? <Check className="w-4 h-4 text-[#8e36ff]" /> : <Share2 className="w-4 h-4" />}
-          {copied ? 'LINK TERSALIN!' : 'BAGIKAN BOOTH INI'}
+          {copied ? 'LINK DOWNLOAD TERSALIN!' : 'SALIN LINK DOWNLOAD'}
         </button>
 
         <button
@@ -256,3 +344,4 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
     </div>
   );
 }
+

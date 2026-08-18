@@ -1,21 +1,31 @@
 'use client';
 
 import React from 'react';
-import { Download, Share2, ImageIcon, Film } from 'lucide-react';
+import { Download, Share2, ImageIcon, Film, Camera } from 'lucide-react';
 import { soundFx } from '@/lib/soundEffects';
 
 interface DownloadClientPageProps {
   pngPath: string;
   gifPath: string;
+  photo1Path?: string;
+  photo2Path?: string;
+  photo3Path?: string;
   createdAt: Date;
 }
 
-export default function DownloadClientPage({ pngPath, gifPath, createdAt }: DownloadClientPageProps) {
-  const handleDownload = (url: string, filename: string) => {
+export default function DownloadClientPage({ 
+  pngPath, 
+  gifPath, 
+  photo1Path,
+  photo2Path,
+  photo3Path,
+  createdAt 
+}: DownloadClientPageProps) {
+  const handleDownload = (url: string, filenamePrefix: string) => {
     soundFx.playClickSound();
     const a = document.createElement('a');
     a.href = url;
-    a.download = filename;
+    a.download = `${filenamePrefix}-${Date.now()}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -26,8 +36,8 @@ export default function DownloadClientPage({ pngPath, gifPath, createdAt }: Down
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Snapkoms Photobooth',
-          text: 'Lihat hasil fotoku di Snapkoms Photobooth!',
+          title: 'Medkom Box Photobooth',
+          text: 'Lihat hasil fotoku di Medkom Box Photobooth!',
           url: window.location.href,
         });
       } catch (err) {
@@ -44,6 +54,12 @@ export default function DownloadClientPage({ pngPath, gifPath, createdAt }: Down
     timeStyle: 'short'
   }).format(new Date(createdAt));
 
+  const rawPhotos = [
+    { title: 'Foto Mentah #1', url: photo1Path, prefix: 'medkombox-raw-1' },
+    { title: 'Foto Mentah #2', url: photo2Path, prefix: 'medkombox-raw-2' },
+    { title: 'Foto Mentah #3', url: photo3Path, prefix: 'medkombox-raw-3' },
+  ].filter(p => !!p.url);
+
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)] py-8 px-4 font-sans">
       <div className="max-w-xl mx-auto flex flex-col gap-8">
@@ -51,22 +67,25 @@ export default function DownloadClientPage({ pngPath, gifPath, createdAt }: Down
         {/* Header */}
         <div className="text-center flex flex-col gap-2">
           <h1 className="font-chillax font-black text-3xl md:text-4xl text-[var(--color-primary)]">
-            Snapkoms Photobooth
+            Medkom Box Photobooth
           </h1>
           <p className="text-sm md:text-base font-semibold text-[var(--color-text-secondary)]">
             {formattedDate}
           </p>
+          <div className="inline-flex self-center items-center gap-1.5 px-3 py-1 bg-yellow-300 text-black border-2 border-black rounded-full font-chillax font-bold text-xs shadow-[2px_2px_0_#000]">
+            ✨ 5 File Tersedia untuk Didownload
+          </div>
         </div>
 
-        {/* Photo Strip Card */}
+        {/* 1. Photo Strip Card */}
         <div className="neo-box bg-white p-4 md:p-6 rounded-2xl flex flex-col items-center gap-4">
           <div className="w-full flex items-center justify-between border-b-2 border-gray-200 pb-3">
             <h2 className="font-chillax font-bold text-lg text-black flex items-center gap-2">
               <ImageIcon className="w-5 h-5 text-[var(--color-primary)]" />
-              Photo Strip
+              1. Photo Strip (Frame PNG)
             </h2>
-            <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-1 rounded font-bold uppercase tracking-wider">
-              High Res PNG
+            <span className="text-[10px] bg-purple-100 text-[#8e36ff] px-2 py-1 rounded font-bold uppercase tracking-wider border border-purple-200">
+              High Res
             </span>
           </div>
           
@@ -79,22 +98,22 @@ export default function DownloadClientPage({ pngPath, gifPath, createdAt }: Down
           </div>
 
           <button
-            onClick={() => handleDownload(pngPath, `snapkoms-photo-${Date.now()}.png`)}
+            onClick={() => handleDownload(pngPath, 'medkombox-strip')}
             className="w-full neo-btn-primary py-4 font-chillax font-bold text-base flex items-center justify-center gap-2 mt-2"
           >
             <Download className="w-5 h-5" />
-            Download Foto
+            Download Photo Strip
           </button>
         </div>
 
-        {/* Animated GIF Card */}
+        {/* 2. Animated GIF Card */}
         <div className="neo-box bg-white p-4 md:p-6 rounded-2xl flex flex-col items-center gap-4">
           <div className="w-full flex items-center justify-between border-b-2 border-gray-200 pb-3">
             <h2 className="font-chillax font-bold text-lg text-black flex items-center gap-2">
               <Film className="w-5 h-5 text-[var(--color-primary)]" />
-              Animasi Boomerang
+              2. Animasi Boomerang (GIF)
             </h2>
-            <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-1 rounded font-bold uppercase tracking-wider">
+            <span className="text-[10px] bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-bold uppercase tracking-wider border border-yellow-200">
               Loop GIF
             </span>
           </div>
@@ -108,13 +127,56 @@ export default function DownloadClientPage({ pngPath, gifPath, createdAt }: Down
           </div>
 
           <button
-            onClick={() => handleDownload(gifPath, `snapkoms-anim-${Date.now()}.gif`)}
+            onClick={() => handleDownload(gifPath, 'medkombox-anim')}
             className="w-full neo-btn-yellow py-4 font-chillax font-bold text-base flex items-center justify-center gap-2 mt-2"
           >
             <Download className="w-5 h-5" />
             Download Video GIF
           </button>
         </div>
+
+        {/* 3, 4, 5. Raw Photos Section */}
+        {rawPhotos.length > 0 && (
+          <div className="neo-box bg-white p-4 md:p-6 rounded-2xl flex flex-col gap-4">
+            <div className="w-full flex items-center justify-between border-b-2 border-gray-200 pb-3">
+              <h2 className="font-chillax font-bold text-lg text-black flex items-center gap-2">
+                <Camera className="w-5 h-5 text-[var(--color-primary)]" />
+                3 Foto Mentahan (Original)
+              </h2>
+              <span className="text-[10px] bg-green-100 text-green-800 px-2 py-1 rounded font-bold uppercase tracking-wider border border-green-200">
+                Raw Shots
+              </span>
+            </div>
+
+            <p className="text-xs text-gray-600 font-medium">
+              Foto asli tanpa frame beresolusi tinggi langsung dari kamera:
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {rawPhotos.map((photo, idx) => (
+                <div key={idx} className="flex flex-col items-center gap-2 bg-gray-50 p-2.5 rounded-xl border-2 border-gray-200 shadow-sm">
+                  <div className="w-full aspect-[4/3] rounded-lg overflow-hidden bg-black/5 flex items-center justify-center">
+                    <img 
+                      src={photo.url} 
+                      alt={photo.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <span className="font-chillax font-bold text-xs text-black">
+                    Foto #{idx + 1}
+                  </span>
+                  <button
+                    onClick={() => handleDownload(photo.url!, photo.prefix)}
+                    className="w-full py-2 px-3 bg-[var(--color-primary)] text-white text-xs font-bold rounded-lg border border-black shadow-[2px_2px_0_#000] flex items-center justify-center gap-1.5 active:translate-y-0.5 active:shadow-none transition-all"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download #{idx + 1}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Share Button */}
         <button
@@ -129,3 +191,4 @@ export default function DownloadClientPage({ pngPath, gifPath, createdAt }: Down
     </div>
   );
 }
+

@@ -8,7 +8,6 @@ import {
   Camera,
   RotateCcw,
   HelpCircle,
-  Gamepad2,
 } from "lucide-react";
 import { soundFx } from "@/lib/soundEffects";
 
@@ -58,7 +57,7 @@ export default function ArcadeCabinet({
             />
             <div>
               <h1 className="text-2xl md:text-3xl font-extrabold font-chillax text-[#202030]">
-                SNAPKOMS
+                MEDKOM BOX
               </h1>
               <p className="text-xs text-[#5c5c68] font-medium tracking-wide">
                 Photobooth Medkom BEM Unsoed
@@ -171,7 +170,7 @@ export default function ArcadeCabinet({
                   DAFTAR HARGA
                 </h2>
                 <p className="text-xs text-[#5c5c68]">
-                  Layanan Photobooth Snapkoms
+                  Layanan Photobooth Medkom Box
                 </p>
               </div>
             </div>
@@ -273,7 +272,7 @@ export default function ArcadeCabinet({
 
       {/* Footer Branding */}
       <footer className="mt-4 text-center text-xs text-[#5c5c68] font-medium">
-        Designed for <strong className="text-[#8e36ff]">Snapkoms Arcade</strong>{" "}
+        Designed for <strong className="text-[#8e36ff]">Medkom Box Arcade</strong>{" "}
         • Powered by Next.js & React
       </footer>
     </div>

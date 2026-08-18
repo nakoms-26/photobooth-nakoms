@@ -8,8 +8,12 @@ datasource db {
 }
 
 model SessionData {
-  id        String   @id @default(cuid())
-  pngPath   String   // URL/Path ke gambar PNG
-  gifPath   String   // URL/Path ke gambar GIF
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  pngPath    String   @db.Text // URL/Path ke gambar PNG
+  gifPath    String   @db.Text // URL/Path ke gambar GIF
+  photo1Path String?  @db.Text // URL/Path ke Foto Mentahan 1
+  photo2Path String?  @db.Text // URL/Path ke Foto Mentahan 2
+  photo3Path String?  @db.Text // URL/Path ke Foto Mentahan 3
+  createdAt  DateTime @default(now())
 }
+

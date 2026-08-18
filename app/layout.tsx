@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Snapkoms - Digital Photobooth",
+  title: "Medkom Box - Digital Photobooth",
   description: "Digital photobooth modern dan praktis dengan live camera, custom PNG frames, sticker, dan GIF export",
 };
 
