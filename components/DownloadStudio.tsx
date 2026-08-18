@@ -15,8 +15,20 @@ interface DownloadStudioProps {
   onResetSession: () => void;
 }
 
+const SESS_KEY = 'photobooth-session-id';
+
 export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSession }: DownloadStudioProps) {
-  const [sessionId] = useState<string>(() => 'c' + Date.now().toString(36) + Math.random().toString(36).substring(2, 8));
+  // Simpan sessionId di sessionStorage agar stabil meski React StrictMode double-mount
+  const [sessionId] = useState<string>(() => {
+    if (typeof window === 'undefined') {
+      return 'c' + Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+    }
+    const existing = window.sessionStorage.getItem(SESS_KEY);
+    if (existing) return existing;
+    const newId = 'c' + Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+    window.sessionStorage.setItem(SESS_KEY, newId);
+    return newId;
+  });
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [isGeneratingGif, setIsGeneratingGif] = useState<boolean>(false); // GIF dimatikan sementara
   const [isGifUploaded, setIsGifUploaded] = useState<boolean>(false);
@@ -355,6 +367,10 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
         <button
           onClick={() => {
             soundFx.playClickSound();
+            // Hapus session ID dari storage agar sesi baru mendapat ID baru
+            if (typeof window !== 'undefined') {
+              window.sessionStorage.removeItem(SESS_KEY);
+            }
             onResetSession();
           }}
           className="w-full neo-btn-yellow py-3 text-xs font-bold flex items-center justify-center gap-1.5 font-chillax"

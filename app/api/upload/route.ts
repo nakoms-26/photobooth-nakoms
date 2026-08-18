@@ -101,34 +101,37 @@ export async function POST(req: Request) {
     ]);
     console.log('[upload/initial] All uploads done. pngUrl:', pngUrl?.substring(0, 60));
 
-    // Simpan ke database
+    // Simpan ke database — pakai upsert agar aman jika ID sudah ada (StrictMode / retry)
     try {
-      await db.sessionData.create({
-        data: {
+      await db.sessionData.upsert({
+        where: { id: sessionId },
+        create: {
           id: sessionId,
           pngPath: pngUrl,
-          gifPath: gifUrl,
+          gifPath: gifUrl ?? '',
           photo1Path: photo1Url,
           photo2Path: photo2Url,
           photo3Path: photo3Url,
-        }
+        },
+        update: {
+          pngPath: pngUrl,
+          gifPath: gifUrl ?? '',
+          photo1Path: photo1Url,
+          photo2Path: photo2Url,
+          photo3Path: photo3Url,
+        },
       });
     } catch (dbErr) {
-      console.warn('Prisma create error, mencoba fallback raw query:', dbErr);
+      console.warn('Prisma upsert error, mencoba fallback raw query:', dbErr);
       try {
         await db.$executeRawUnsafe(
-          `INSERT INTO SessionData (id, pngPath, gifPath, photo1Path, photo2Path, photo3Path, createdAt) VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-          sessionId, pngUrl, gifUrl, photo1Url, photo2Url, photo3Url
+          `INSERT INTO SessionData (id, pngPath, gifPath, photo1Path, photo2Path, photo3Path, createdAt) VALUES (?, ?, ?, ?, ?, ?, NOW())
+           ON DUPLICATE KEY UPDATE pngPath = VALUES(pngPath), gifPath = VALUES(gifPath), photo1Path = VALUES(photo1Path), photo2Path = VALUES(photo2Path), photo3Path = VALUES(photo3Path)`,
+          sessionId, pngUrl, gifUrl ?? '', photo1Url, photo2Url, photo3Url
         );
       } catch (rawErr) {
-        console.warn('Raw query fallback error, fallback ke standard fields:', rawErr);
-        await db.sessionData.create({
-          data: {
-            id: sessionId,
-            pngPath: pngUrl,
-            gifPath: gifUrl,
-          }
-        });
+        console.error('Raw upsert fallback error:', rawErr);
+        // Return success anyway karena file sudah terupload ke asset server
       }
     }
 
