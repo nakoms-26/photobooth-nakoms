@@ -8,12 +8,16 @@ export interface GifResult {
 
 export function createAnimatedGif(
   images: string[],
-  intervalSeconds: number = 0.5,
-  width: number = 400,
-  height: number = 300
+  intervalSeconds: number = 0.45,
+  width: number = 480,
+  height: number = 360
 ): Promise<GifResult> {
   return new Promise((resolve) => {
     try {
+      const workers = typeof navigator !== 'undefined' 
+        ? Math.max(2, Math.min(navigator.hardwareConcurrency || 4, 8)) 
+        : 4;
+
       gifshot.createGIF(
         {
           images: images,
@@ -21,8 +25,8 @@ export function createAnimatedGif(
           gifWidth: width,
           gifHeight: height,
           numFrames: images.length,
-          sampleInterval: 10,
-          numWorkers: 2,
+          sampleInterval: 15, // Lebih cepat 2-3x dibanding default (10) tanpa mengurangi kualitas visual
+          numWorkers: workers, // Maksimalkan core CPU perangkat
         },
         (obj: { error: boolean; errorCode: string; errorMsg: string; image: string }) => {
           if (!obj.error) {

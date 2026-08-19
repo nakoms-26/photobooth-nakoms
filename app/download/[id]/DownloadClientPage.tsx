@@ -21,34 +21,35 @@ interface DownloadClientPageProps {
 
 export default function DownloadClientPage({ id, initialSession }: DownloadClientPageProps) {
   const [session, setSession] = useState<SessionDataPayload | null>(initialSession);
-  // Poll sampai sesi ditemukan di database (upload PNG bisa memakan beberapa detik)
-  // GIF polling dimatikan — hanya tunggu sampai session ada
-  const shouldPollRef = useRef<boolean>(!initialSession);
-
+  const shouldPollRef = useRef<boolean>(!initialSession || !initialSession.gifPath);
 
   useEffect(() => {
     if (!shouldPollRef.current) return;
 
     let isMounted = true;
     let timer: ReturnType<typeof setTimeout>;
+    let pollCount = 0;
+    const maxPolls = 15; // Max 30 detik
 
     const checkStatus = async () => {
+      pollCount++;
       try {
         const res = await fetch(`/api/session/${id}`);
         if (res.ok) {
           const result = await res.json();
           if (result.found && result.data && isMounted) {
             setSession(result.data);
-            // Berhenti polling begitu session ditemukan di database
-            shouldPollRef.current = false;
-            return;
+            if (result.data.gifPath && result.data.gifPath.length > 0 && result.data.gifPath !== 'PENDING') {
+              shouldPollRef.current = false;
+              return;
+            }
           }
         }
       } catch (err) {
         console.error('Polling error:', err);
       }
 
-      if (isMounted && shouldPollRef.current) {
+      if (isMounted && shouldPollRef.current && pollCount < maxPolls) {
         timer = setTimeout(checkStatus, 2000);
       }
     };
@@ -59,7 +60,7 @@ export default function DownloadClientPage({ id, initialSession }: DownloadClien
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [id]); // Only id as dep — polling controlled by ref internally
+  }, [id]);
 
 
   const handleDownload = async (url: string, filenamePrefix: string, extension: string = 'jpg') => {

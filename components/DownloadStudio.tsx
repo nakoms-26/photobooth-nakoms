@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { Download, Film, Share2, Sparkles, RotateCcw, Check, RefreshCw, Image as ImageIcon, Camera } from 'lucide-react';
 import { createAnimatedGif } from '@/lib/gifGenerator';
+import { createBoomerangVideo } from '@/lib/videoGenerator';
 import { soundFx } from '@/lib/soundEffects';
 import { QRCodeSVG } from 'qrcode.react';
 import { uploadInitialSession, uploadGifSession } from '@/lib/uploadApi';
@@ -28,9 +29,11 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
     return _activeSessionId;
   });
   const [gifUrl, setGifUrl] = useState<string | null>(null);
-  const [isGeneratingGif, setIsGeneratingGif] = useState<boolean>(false); // GIF dimatikan sementara
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoExt, setVideoExt] = useState<'mp4' | 'webm'>('mp4');
+  const [isGeneratingGif, setIsGeneratingGif] = useState<boolean>(true);
   const [isGifUploaded, setIsGifUploaded] = useState<boolean>(false);
-  const [gifError, setGifError] = useState<string | null>('GIF dinonaktifkan sementara');
+  const [gifError, setGifError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   
   const [isUploading, setIsUploading] = useState<boolean>(true);
@@ -75,14 +78,26 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
       }
     };
 
-    // 2. PROSES B (PARALEL): Generate Animated GIF di browser lalu upload GIF
-    const startGifPipeline = async () => {
+    // 2. PROSES B (PARALEL): Generate Boomerang Video (MP4 Super Cepat) + Animated GIF (480px)
+    const startAnimationPipeline = async () => {
+      if (capturedPhotos.length === 0) return;
       setIsGeneratingGif(true);
       
       const dims = await getImageDimensions(capturedPhotos[0]);
       const targetWidth = 480;
       const targetHeight = Math.round(targetWidth * (dims.height / dims.width));
 
+      // B1. Render Boomerang MP4 / WebM secara instan via hardware GPU (~1.5 detik)
+      createBoomerangVideo(capturedPhotos, 400, targetWidth, targetHeight, 2)
+        .then((vRes) => {
+          if (isMounted && vRes.success && vRes.videoUrl) {
+            setVideoUrl(vRes.videoUrl);
+            setVideoExt(vRes.extension || 'mp4');
+          }
+        })
+        .catch((e) => console.warn('Boomerang video error:', e));
+
+      // B2. Render Animated GIF (Optimasi sampleInterval 15 + multi-core CPU workers)
       const res = await createAnimatedGif(capturedPhotos, 0.45, targetWidth, targetHeight);
       if (isMounted) {
         if (res.success && res.gifUrl) {
@@ -101,12 +116,8 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
       }
     };
 
-    // Jalankan hanya initial upload (GIF dimatikan sementara)
     startInitialUpload();
-    // TODO: Re-enable GIF pipeline setelah asset server difix
-    // if (capturedPhotos.length > 0) {
-    //   startGifPipeline();
-    // }
+    startAnimationPipeline();
 
     return () => {
       isMounted = false;
@@ -129,6 +140,17 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
     const a = document.createElement('a');
     a.href = gifUrl;
     a.download = `medkombox-animation-${Date.now()}.gif`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleDownloadVideo = () => {
+    if (!videoUrl) return;
+    soundFx.playClickSound();
+    const a = document.createElement('a');
+    a.href = videoUrl;
+    a.download = `medkombox-boomerang-${Date.now()}.${videoExt}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -290,14 +312,26 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
             )}
           </div>
 
-          <button
-            onClick={handleDownloadGif}
-            disabled={!gifUrl || isGeneratingGif}
-            className="w-full neo-btn-yellow py-3 text-sm font-bold flex items-center justify-center gap-2 font-chillax disabled:opacity-50 mt-2"
-          >
-            <Film className="w-4 h-4" />
-            DOWNLOAD GIF ANIMATED
-          </button>
+          <div className="w-full flex flex-col gap-2 mt-2">
+            <button
+              onClick={handleDownloadGif}
+              disabled={!gifUrl || isGeneratingGif}
+              className="w-full neo-btn-yellow py-3 text-sm font-bold flex items-center justify-center gap-2 font-chillax disabled:opacity-50"
+            >
+              <Film className="w-4 h-4" />
+              DOWNLOAD GIF ANIMATED
+            </button>
+
+            {videoUrl && (
+              <button
+                onClick={handleDownloadVideo}
+                className="w-full py-2.5 px-4 rounded-xl border-2 border-black bg-emerald-400 hover:bg-emerald-300 font-chillax font-bold text-xs text-black shadow-[2px_2px_0_#000] flex items-center justify-center gap-2 active:translate-y-0.5 active:shadow-none transition-all"
+              >
+                <Download className="w-3.5 h-3.5" />
+                DOWNLOAD VIDEO BOOMERANG ({videoExt.toUpperCase()})
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
