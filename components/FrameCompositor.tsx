@@ -186,10 +186,30 @@ export default function FrameCompositor({ photos, onCompositeGenerated, actions 
 
   useEffect(() => { renderMain(); }, [renderMain]);
 
-  const goTo = (idx: number) => {
+  const goTo = useCallback((idx: number) => {
     soundFx.playClickSound();
     setTemplateIndex((idx + TEMPLATES.length) % TEMPLATES.length);
-  };
+  }, []);
+
+  // Keyboard navigation for switching frames (Arrow Left & Arrow Right)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (e.key === 'ArrowLeft' || e.code === 'ArrowLeft') {
+        e.preventDefault();
+        goTo(templateIndex - 1);
+      } else if (e.key === 'ArrowRight' || e.code === 'ArrowRight') {
+        e.preventDefault();
+        goTo(templateIndex + 1);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [goTo, templateIndex]);
 
   // Touch swipe support
   const onTouchStart = (e: React.TouchEvent) => {
@@ -232,6 +252,8 @@ export default function FrameCompositor({ photos, onCompositeGenerated, actions 
         {/* Left arrow */}
         <button
           onClick={() => goTo(templateIndex - 1)}
+          title="Frame Sebelumnya (←)"
+          aria-label="Frame Sebelumnya (Panah Kiri)"
           className="absolute left-2 z-10 w-12 h-12 rounded-full bg-black/5 backdrop-blur-sm border border-black/10 flex items-center justify-center text-[var(--color-text)] hover:bg-black/10 transition-all active:scale-90"
         >
           <ChevronLeft className="w-6 h-6" />
@@ -254,6 +276,8 @@ export default function FrameCompositor({ photos, onCompositeGenerated, actions 
         {/* Right arrow */}
         <button
           onClick={() => goTo(templateIndex + 1)}
+          title="Frame Selanjutnya (→)"
+          aria-label="Frame Selanjutnya (Panah Kanan)"
           className="absolute right-2 z-10 w-12 h-12 rounded-full bg-black/5 backdrop-blur-sm border border-black/10 flex items-center justify-center text-[var(--color-text)] hover:bg-black/10 transition-all active:scale-90"
         >
           <ChevronRight className="w-6 h-6" />
