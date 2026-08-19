@@ -12,6 +12,7 @@
     "@prisma/client": "^5.22.0",
     "canvas-confetti": "^1.9.4",
     "dotenv": "^17.4.2",
+    "gifenc": "^1.0.3",
     "gifshot": "^0.3.2",
     "lucide-react": "^0.475.0",
     "next": "16.2.10",

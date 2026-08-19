@@ -49,30 +49,35 @@ export async function POST(req: Request) {
     const animExt = extension || 'mp4';
     const animMime = animExt === 'webm' ? 'video/webm' : (animExt === 'gif' ? 'image/gif' : 'video/mp4');
 
-    // 1. ACTION: UPLOAD VIDEO ONLY (Async update after boomerang video generation finishes)
-    if (action === 'upload-video' || action === 'upload-gif' || (animData && !pngBase64)) {
+    // 1. ACTION: UPLOAD GIF ONLY (Async update after GIF generation finishes)
+    if (action === 'upload-gif' || action === 'upload-video' || (animData && !pngBase64)) {
       if (!incomingSessionId) {
-        return NextResponse.json({ error: 'Missing sessionId for video update' }, { status: 400 });
+        return NextResponse.json({ error: 'Missing sessionId for animation update' }, { status: 400 });
       }
 
-      const videoUrl = await uploadToAssetServer(
+      const isGif = animExt === 'gif' || (animData && animData.startsWith('data:image/gif'));
+      const filename = isGif ? `photo_anim_${timestamp}.gif` : `photo_boomerang_${timestamp}.mp4`;
+      const mimeType = isGif ? 'image/gif' : 'video/mp4';
+      const appNs = isGif ? `snapkoms_${incomingSessionId}_gif` : `snapkoms_${incomingSessionId}_video`;
+
+      const gifUrl = await uploadToAssetServer(
         animData,
-        `photo_boomerang_${timestamp}.mp4`,
-        'video/mp4',
-        `snapkoms_${incomingSessionId}_video`
+        filename,
+        mimeType,
+        appNs
       );
 
       try {
         await db.sessionData.update({
           where: { id: incomingSessionId },
-          data: { gifPath: videoUrl },
+          data: { gifPath: gifUrl },
         });
       } catch (updateErr) {
-        console.warn('Prisma update error for gifPath/videoPath, trying raw query:', updateErr);
+        console.warn('Prisma update error for gifPath, trying raw query:', updateErr);
         try {
           await db.$executeRawUnsafe(
             `UPDATE SessionData SET gifPath = ? WHERE id = ?`,
-            videoUrl, incomingSessionId
+            gifUrl, incomingSessionId
           );
         } catch (rawErr) {
           console.error('Raw query update error:', rawErr);
@@ -82,8 +87,8 @@ export async function POST(req: Request) {
       return NextResponse.json({
         success: true,
         id: incomingSessionId,
-        videoUrl,
-        gifUrl: videoUrl,
+        gifUrl,
+        videoUrl: gifUrl,
       });
     }
 
@@ -102,12 +107,13 @@ export async function POST(req: Request) {
       `snapkoms_${sessionId}_strip`
     ).catch((e: Error) => { console.error('[upload/initial] PNG/JPG upload error:', e.message); throw e; });
 
-    const videoUploadPromise = animData
+    const isGifInitial = animExt === 'gif' || (animData && animData.startsWith('data:image/gif'));
+    const gifUploadPromise = animData
       ? uploadToAssetServer(
           animData,
-          `photo_boomerang_${timestamp}.mp4`,
-          'video/mp4',
-          `snapkoms_${sessionId}_video`
+          isGifInitial ? `photo_anim_${timestamp}.gif` : `photo_boomerang_${timestamp}.mp4`,
+          isGifInitial ? 'image/gif' : 'video/mp4',
+          isGifInitial ? `snapkoms_${sessionId}_gif` : `snapkoms_${sessionId}_video`
         )
       : Promise.resolve('');
 

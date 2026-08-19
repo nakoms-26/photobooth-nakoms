@@ -71,17 +71,16 @@ export const uploadInitialSession = async (
   });
 };
 
-export interface VideoUploadResponse {
+export interface GifUploadResponse {
   success: boolean;
-  videoUrl?: string;
+  gifUrl?: string;
   error?: string;
 }
 
-export const uploadVideoSession = async (
+export const uploadGifSession = async (
   sessionId: string,
-  videoBase64: string,
-  extension: string = 'mp4'
-): Promise<VideoUploadResponse> => {
+  gifBase64: string
+): Promise<GifUploadResponse> => {
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/upload");
@@ -93,37 +92,36 @@ export const uploadVideoSession = async (
           const result = JSON.parse(xhr.responseText);
           resolve(result);
         } catch (error) {
-          console.error("Failed to parse Video upload response:", error);
-          resolve({ success: false, error: "Gagal memproses respons server Video" });
+          console.error("Failed to parse GIF upload response:", error);
+          resolve({ success: false, error: "Gagal memproses respons server GIF" });
         }
       } else {
         let serverError = xhr.statusText;
         try {
           const errBody = JSON.parse(xhr.responseText);
           serverError = errBody.error || errBody.details || xhr.statusText;
-          console.error("[uploadVideoSession] Server error body:", errBody);
+          console.error("[uploadGifSession] Server error body:", errBody);
         } catch {
-          console.error("[uploadVideoSession] Server error (non-JSON):", xhr.responseText?.substring(0, 300));
+          console.error("[uploadGifSession] Server error (non-JSON):", xhr.responseText?.substring(0, 300));
         }
         resolve({ success: false, error: `HTTP ${xhr.status}: ${serverError}` });
       }
     };
 
     xhr.onerror = () => {
-      console.error("Network Error during Video upload");
-      resolve({ success: false, error: "Kesalahan jaringan saat upload Video" });
+      console.error("Network Error during GIF upload");
+      resolve({ success: false, error: "Kesalahan jaringan saat upload GIF" });
     };
 
     xhr.send(JSON.stringify({
-      action: 'upload-video',
+      action: 'upload-gif',
       sessionId,
-      videoBase64,
-      extension,
+      gifBase64,
     }));
   });
 };
 
-export const uploadGifSession = uploadVideoSession;
+export const uploadVideoSession = uploadGifSession;
 
 export const uploadSession = async (
   pngBase64: string,
