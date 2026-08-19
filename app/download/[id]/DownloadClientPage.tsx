@@ -202,34 +202,45 @@ export default function DownloadClientPage({ id, initialSession }: DownloadClien
           </button>
         </div>
 
-        {/* 2. Animated GIF Card */}
+        {/* 2. Boomerang Video MP4 Card */}
         <div className="neo-box bg-white p-4 md:p-6 rounded-2xl flex flex-col items-center gap-4">
           <div className="w-full flex items-center justify-between border-b-2 border-gray-200 pb-3">
             <h2 className="font-chillax font-bold text-lg text-black flex items-center gap-2">
               <Film className="w-5 h-5 text-[var(--color-primary)]" />
-              2. Animasi Boomerang (GIF)
+              2. Animasi Boomerang (Video MP4)
             </h2>
             <span className="text-[10px] bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-bold uppercase tracking-wider border border-yellow-200">
-              Loop GIF
+              Video Loop
             </span>
           </div>
           
           {isGifReady ? (
             <>
-              <div className="w-full max-w-[320px] bg-gray-50 border-2 border-gray-200 rounded-xl p-2 overflow-hidden shadow-sm">
-                <img 
-                  src={session.gifPath!} 
-                  alt="Animated GIF" 
-                  className="w-full h-auto rounded-lg"
-                />
+              <div className="w-full max-w-[320px] bg-gray-50 border-2 border-gray-200 rounded-xl p-2 overflow-hidden shadow-sm flex items-center justify-center">
+                {session.gifPath!.endsWith('.gif') ? (
+                  <img 
+                    src={session.gifPath!} 
+                    alt="Animated GIF" 
+                    className="w-full h-auto rounded-lg"
+                  />
+                ) : (
+                  <video 
+                    src={session.gifPath!} 
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-auto rounded-lg"
+                  />
+                )}
               </div>
 
               <button
-                onClick={() => handleDownload(session.gifPath!, 'medkombox-anim', 'gif')}
+                onClick={() => handleDownload(session.gifPath!, 'medkombox-boomerang', session.gifPath!.endsWith('.webm') ? 'webm' : (session.gifPath!.endsWith('.gif') ? 'gif' : 'mp4'))}
                 className="w-full neo-btn-yellow py-4 font-chillax font-bold text-base flex items-center justify-center gap-2 mt-2"
               >
                 <Download className="w-5 h-5" />
-                Download Video GIF
+                Download Video Boomerang (MP4)
               </button>
             </>
           ) : (
@@ -237,10 +248,10 @@ export default function DownloadClientPage({ id, initialSession }: DownloadClien
               <RefreshCw className="w-8 h-8 text-[var(--color-primary)] animate-spin" />
               <div className="flex flex-col gap-1">
                 <span className="text-sm font-bold font-chillax text-gray-800">
-                  Menyinkronkan Animasi GIF...
+                  Menyinkronkan Video Boomerang...
                 </span>
                 <span className="text-xs text-gray-500 font-semibold">
-                  Animasi akan otomatis muncul di sini begitu siap
+                  Video akan otomatis muncul di sini begitu siap
                 </span>
               </div>
             </div>

@@ -3,12 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { Download, Film, Share2, Sparkles, RotateCcw, Check, RefreshCw, Image as ImageIcon, Camera } from 'lucide-react';
-import { createAnimatedGif } from '@/lib/gifGenerator';
 import { createBoomerangVideo } from '@/lib/videoGenerator';
 import { soundFx } from '@/lib/soundEffects';
 import { QRCodeSVG } from 'qrcode.react';
-import { uploadInitialSession, uploadGifSession } from '@/lib/uploadApi';
-
+import { uploadInitialSession, uploadVideoSession } from '@/lib/uploadApi';
 
 interface DownloadStudioProps {
   pngDataUrl: string;
@@ -17,7 +15,6 @@ interface DownloadStudioProps {
 }
 
 // Module-level variable: survives React StrictMode double-mount
-// Di-clear saat user klik reset, atau saat hard-refresh browser
 let _activeSessionId: string | null = null;
 
 export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSession }: DownloadStudioProps) {
@@ -28,12 +25,10 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
     console.log('[DownloadStudio] Using sessionId:', _activeSessionId);
     return _activeSessionId;
   });
-  const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoExt, setVideoExt] = useState<'mp4' | 'webm'>('mp4');
-  const [isGeneratingGif, setIsGeneratingGif] = useState<boolean>(true);
-  const [isGifUploaded, setIsGifUploaded] = useState<boolean>(false);
-  const [gifError, setGifError] = useState<string | null>(null);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState<boolean>(true);
+  const [videoError, setVideoError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   
   const [isUploading, setIsUploading] = useState<boolean>(true);
@@ -60,7 +55,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
 
     let isMounted = true;
 
-    // 1. PROSES A (PARALEL): Upload PNG Strip + 3 Foto Mentahan ke Server secara instan
+    // 1. PROSES A: Upload PNG Strip + 3 Foto Mentahan ke Server secara instan
     const startInitialUpload = async () => {
       setIsUploading(true);
       let currentProgress = 0;
@@ -78,46 +73,46 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
       }
     };
 
-    // 2. PROSES B (PARALEL): Generate Boomerang Video (MP4 Super Cepat) + Animated GIF (480px)
-    const startAnimationPipeline = async () => {
+    // 2. PROSES B: Render Boomerang Video MP4 Super Cepat via Hardware GPU (~1 detik)
+    const startVideoPipeline = async () => {
       if (capturedPhotos.length === 0) return;
-      setIsGeneratingGif(true);
+      setIsGeneratingVideo(true);
       
       const dims = await getImageDimensions(capturedPhotos[0]);
       const targetWidth = 480;
       const targetHeight = Math.round(targetWidth * (dims.height / dims.width));
 
-      // B1. Render Boomerang MP4 / WebM secara instan via hardware GPU (~1.5 detik)
-      createBoomerangVideo(capturedPhotos, 400, targetWidth, targetHeight, 2)
-        .then((vRes) => {
-          if (isMounted && vRes.success && vRes.videoUrl) {
+      try {
+        const vRes = await createBoomerangVideo(capturedPhotos, 380, targetWidth, targetHeight, 2);
+        if (isMounted) {
+          if (vRes.success && vRes.videoUrl) {
             setVideoUrl(vRes.videoUrl);
             setVideoExt(vRes.extension || 'mp4');
-          }
-        })
-        .catch((e) => console.warn('Boomerang video error:', e));
+            setIsGeneratingVideo(false);
 
-      // B2. Render Animated GIF (Optimasi sampleInterval 15 + multi-core CPU workers)
-      const res = await createAnimatedGif(capturedPhotos, 0.45, targetWidth, targetHeight);
-      if (isMounted) {
-        if (res.success && res.gifUrl) {
-          setGifUrl(res.gifUrl);
-          setIsGeneratingGif(false);
-
-          // Upload GIF ke server
-          const gifRes = await uploadGifSession(sessionId, res.gifUrl);
-          if (isMounted && gifRes.success) {
-            setIsGifUploaded(true);
+            // Upload video ke server secara asynchronous
+            if (vRes.videoBase64) {
+              uploadVideoSession(sessionId, vRes.videoBase64, vRes.extension || 'mp4')
+                .then((uploadRes) => {
+                  if (!uploadRes.success) console.warn('Video upload failed:', uploadRes.error);
+                })
+                .catch((err) => console.error('Video upload error:', err));
+            }
+          } else {
+            setVideoError(vRes.error || 'Gagal merender video');
+            setIsGeneratingVideo(false);
           }
-        } else {
-          setGifError(res.error || 'Gagal merender GIF');
-          setIsGeneratingGif(false);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setVideoError('Terjadi kesalahan saat memproses video');
+          setIsGeneratingVideo(false);
         }
       }
     };
 
     startInitialUpload();
-    startAnimationPipeline();
+    startVideoPipeline();
 
     return () => {
       isMounted = false;
@@ -129,17 +124,6 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
     const a = document.createElement('a');
     a.href = pngDataUrl;
     a.download = `medkombox-strip-${Date.now()}.jpg`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-
-  const handleDownloadGif = () => {
-    if (!gifUrl) return;
-    soundFx.playClickSound();
-    const a = document.createElement('a');
-    a.href = gifUrl;
-    a.download = `medkombox-animation-${Date.now()}.gif`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -195,7 +179,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
           <Sparkles className="w-6 h-6 text-[#f8d22a] animate-spin" />
         </div>
         <p className="text-xs font-bold text-white/90">
-          Foto kamu telah berhasil disimpan! Strip PNG & 3 foto mentahan siap didownload.
+          Foto kamu telah berhasil disimpan! Strip PNG, Video Boomerang & 3 foto mentahan siap didownload.
         </p>
       </div>
 
@@ -210,7 +194,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
             SCAN UNTUK DOWNLOAD!
           </h3>
           <p className="text-sm font-semibold text-[var(--color-text-secondary)] leading-relaxed">
-            Arahkan kamera HP ke QR Code di samping untuk membuka halaman download dan menyimpan ke-5 file foto & video GIF kamu secara instan!
+            Arahkan kamera HP ke QR Code di samping untuk membuka halaman download dan menyimpan ke-5 file foto & video kamu secara instan!
           </p>
           
           {/* Status Indicators */}
@@ -224,7 +208,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
               ) : (
                 <>
                   <span className="w-2.5 h-2.5 rounded-full bg-green-500"></span>
-                  <span>1 Strip PNG + 3 Foto Mentahan siap didownload</span>
+                  <span>1 Strip PNG + 1 Video MP4 + 3 Foto Mentahan siap didownload</span>
                 </>
               )}
             </div>
@@ -247,7 +231,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
         </div>
       </div>
 
-      {/* Dual Preview Cards (PNG Strip + Animated GIF) */}
+      {/* Dual Preview Cards (PNG Strip + Boomerang Video MP4) */}
       <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         
         {/* 1. PNG Photo Strip Card */}
@@ -279,59 +263,50 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
           </button>
         </div>
 
-        {/* 2. Animated GIF Boomerang Card */}
+        {/* 2. Boomerang Video Card */}
         <div className="neo-box rounded-2xl p-4 bg-[#ffffff] flex flex-col items-center gap-3">
           <div className="w-full flex items-center justify-between border-b-2 border-[#202030] pb-2">
             <span className="text-xs font-extrabold uppercase text-[#8e36ff] font-chillax flex items-center gap-1">
               <Film className="w-4 h-4" />
-              2. ANIMATED GIF (LOOP)
+              2. VIDEO BOOMERANG ({videoExt.toUpperCase()})
             </span>
             <span className="text-[10px] bg-[#faf8ff] text-[#8e36ff] px-2 py-0.5 rounded-md font-bold border border-[#202030]">
-              BOOMERANG
+              LOOP VIDEO
             </span>
           </div>
 
           <div className="w-full min-h-[250px] max-h-[380px] rounded-xl border-2 border-[#202030] bg-[#faf8ff] flex items-center justify-center overflow-hidden relative p-2">
-            {isGeneratingGif ? (
+            {isGeneratingVideo ? (
               <div className="flex flex-col items-center gap-2 p-4 text-center">
                 <RefreshCw className="w-8 h-8 text-[#8e36ff] animate-spin" />
                 <span className="text-xs font-bold font-chillax text-[#8e36ff]">
-                  Memproses Animasi GIF...
+                  Memproses Video Boomerang...
                 </span>
               </div>
-            ) : gifUrl ? (
-              <img
-                src={gifUrl}
-                alt="Animated Photobooth GIF"
+            ) : videoUrl ? (
+              <video
+                src={videoUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
                 className="max-h-[360px] w-auto h-auto object-contain rounded-lg shadow-md mx-auto"
               />
             ) : (
               <span className="text-xs text-[#ef4444] font-bold p-4 text-center">
-                {gifError || 'GIF tidak dapat dibuat'}
+                {videoError || 'Video tidak dapat dibuat'}
               </span>
             )}
           </div>
 
-          <div className="w-full flex flex-col gap-2 mt-2">
-            <button
-              onClick={handleDownloadGif}
-              disabled={!gifUrl || isGeneratingGif}
-              className="w-full neo-btn-yellow py-3 text-sm font-bold flex items-center justify-center gap-2 font-chillax disabled:opacity-50"
-            >
-              <Film className="w-4 h-4" />
-              DOWNLOAD GIF ANIMATED
-            </button>
-
-            {videoUrl && (
-              <button
-                onClick={handleDownloadVideo}
-                className="w-full py-2.5 px-4 rounded-xl border-2 border-black bg-emerald-400 hover:bg-emerald-300 font-chillax font-bold text-xs text-black shadow-[2px_2px_0_#000] flex items-center justify-center gap-2 active:translate-y-0.5 active:shadow-none transition-all"
-              >
-                <Download className="w-3.5 h-3.5" />
-                DOWNLOAD VIDEO BOOMERANG ({videoExt.toUpperCase()})
-              </button>
-            )}
-          </div>
+          <button
+            onClick={handleDownloadVideo}
+            disabled={!videoUrl || isGeneratingVideo}
+            className="w-full neo-btn-yellow py-3 text-sm font-bold flex items-center justify-center gap-2 font-chillax disabled:opacity-50 mt-2"
+          >
+            <Film className="w-4 h-4" />
+            DOWNLOAD VIDEO BOOMERANG ({videoExt.toUpperCase()})
+          </button>
         </div>
       </div>
 

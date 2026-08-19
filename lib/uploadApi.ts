@@ -71,10 +71,17 @@ export const uploadInitialSession = async (
   });
 };
 
-export const uploadGifSession = async (
+export interface VideoUploadResponse {
+  success: boolean;
+  videoUrl?: string;
+  error?: string;
+}
+
+export const uploadVideoSession = async (
   sessionId: string,
-  gifBase64: string
-): Promise<GifUploadResponse> => {
+  videoBase64: string,
+  extension: string = 'mp4'
+): Promise<VideoUploadResponse> => {
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/upload");
@@ -86,34 +93,37 @@ export const uploadGifSession = async (
           const result = JSON.parse(xhr.responseText);
           resolve(result);
         } catch (error) {
-          console.error("Failed to parse GIF upload response:", error);
-          resolve({ success: false, error: "Gagal memproses respons server GIF" });
+          console.error("Failed to parse Video upload response:", error);
+          resolve({ success: false, error: "Gagal memproses respons server Video" });
         }
       } else {
         let serverError = xhr.statusText;
         try {
           const errBody = JSON.parse(xhr.responseText);
           serverError = errBody.error || errBody.details || xhr.statusText;
-          console.error("[uploadGifSession] Server error body:", errBody);
+          console.error("[uploadVideoSession] Server error body:", errBody);
         } catch {
-          console.error("[uploadGifSession] Server error (non-JSON):", xhr.responseText?.substring(0, 300));
+          console.error("[uploadVideoSession] Server error (non-JSON):", xhr.responseText?.substring(0, 300));
         }
         resolve({ success: false, error: `HTTP ${xhr.status}: ${serverError}` });
       }
     };
 
     xhr.onerror = () => {
-      console.error("Network Error during GIF upload");
-      resolve({ success: false, error: "Kesalahan jaringan saat upload GIF" });
+      console.error("Network Error during Video upload");
+      resolve({ success: false, error: "Kesalahan jaringan saat upload Video" });
     };
 
     xhr.send(JSON.stringify({
-      action: 'upload-gif',
+      action: 'upload-video',
       sessionId,
-      gifBase64,
+      videoBase64,
+      extension,
     }));
   });
 };
+
+export const uploadGifSession = uploadVideoSession;
 
 export const uploadSession = async (
   pngBase64: string,

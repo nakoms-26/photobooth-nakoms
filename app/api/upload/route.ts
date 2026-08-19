@@ -42,34 +42,37 @@ async function uploadToAssetServer(
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { action, sessionId: incomingSessionId, pngBase64, gifBase64, rawPhotos = [] } = body;
+    const { action, sessionId: incomingSessionId, pngBase64, videoBase64, gifBase64, extension = 'mp4', rawPhotos = [] } = body;
 
     const timestamp = Date.now();
+    const animData = videoBase64 || gifBase64;
+    const animExt = extension || 'mp4';
+    const animMime = animExt === 'webm' ? 'video/webm' : (animExt === 'gif' ? 'image/gif' : 'video/mp4');
 
-    // 1. ACTION: UPLOAD GIF ONLY (Async update after GIF generation finishes)
-    if (action === 'upload-gif' || (gifBase64 && !pngBase64)) {
+    // 1. ACTION: UPLOAD VIDEO ONLY (Async update after boomerang video generation finishes)
+    if (action === 'upload-video' || action === 'upload-gif' || (animData && !pngBase64)) {
       if (!incomingSessionId) {
-        return NextResponse.json({ error: 'Missing sessionId for GIF update' }, { status: 400 });
+        return NextResponse.json({ error: 'Missing sessionId for video update' }, { status: 400 });
       }
 
-      const gifUrl = await uploadToAssetServer(
-        gifBase64,
-        `photo_anim_${timestamp}.gif`,
-        'image/gif',
-        `snapkoms_${incomingSessionId}_gif`
+      const videoUrl = await uploadToAssetServer(
+        animData,
+        `photo_boomerang_${timestamp}.${animExt}`,
+        animMime,
+        `snapkoms_${incomingSessionId}_video`
       );
 
       try {
         await db.sessionData.update({
           where: { id: incomingSessionId },
-          data: { gifPath: gifUrl },
+          data: { gifPath: videoUrl },
         });
       } catch (updateErr) {
-        console.warn('Prisma update error for gifPath, trying raw query:', updateErr);
+        console.warn('Prisma update error for gifPath/videoPath, trying raw query:', updateErr);
         try {
           await db.$executeRawUnsafe(
             `UPDATE SessionData SET gifPath = ? WHERE id = ?`,
-            gifUrl, incomingSessionId
+            videoUrl, incomingSessionId
           );
         } catch (rawErr) {
           console.error('Raw query update error:', rawErr);
@@ -79,7 +82,8 @@ export async function POST(req: Request) {
       return NextResponse.json({
         success: true,
         id: incomingSessionId,
-        gifUrl,
+        videoUrl,
+        gifUrl: videoUrl,
       });
     }
 
@@ -98,14 +102,14 @@ export async function POST(req: Request) {
       `snapkoms_${sessionId}_strip`
     ).catch((e: Error) => { console.error('[upload/initial] PNG/JPG upload error:', e.message); throw e; });
 
-    const gifUploadPromise = gifBase64
+    const videoUploadPromise = animData
       ? uploadToAssetServer(
-          gifBase64,
-          `photo_anim_${timestamp}.gif`,
-          'image/gif',
-          `snapkoms_${sessionId}_gif`
+          animData,
+          `photo_boomerang_${timestamp}.${animExt}`,
+          animMime,
+          `snapkoms_${sessionId}_video`
         )
-      : Promise.resolve(''); // GIF dinonaktifkan sementara — simpan empty string di DB
+      : Promise.resolve('');
 
     const raw1Promise = (rawPhotos && rawPhotos[0])
       ? uploadToAssetServer(
@@ -136,7 +140,7 @@ export async function POST(req: Request) {
 
     const [pngUrl, gifUrl, photo1Url, photo2Url, photo3Url] = await Promise.all([
       pngUploadPromise,
-      gifUploadPromise,
+      videoUploadPromise,
       raw1Promise.catch((e: Error) => { console.error('[upload/initial] Raw 1 error:', e.message); return null; }),
       raw2Promise.catch((e: Error) => { console.error('[upload/initial] Raw 2 error:', e.message); return null; }),
       raw3Promise.catch((e: Error) => { console.error('[upload/initial] Raw 3 error:', e.message); return null; }),

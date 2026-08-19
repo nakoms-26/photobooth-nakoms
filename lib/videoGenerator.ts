@@ -2,14 +2,24 @@ export interface VideoResult {
   success: boolean;
   videoUrl?: string;
   videoBlob?: Blob;
+  videoBase64?: string;
   mimeType?: string;
   extension?: 'mp4' | 'webm';
   error?: string;
 }
 
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 export async function createBoomerangVideo(
   images: string[],
-  frameDurationMs: number = 400,
+  frameDurationMs: number = 380,
   targetWidth: number = 480,
   targetHeight: number = 360,
   loops: number = 2
@@ -74,13 +84,15 @@ export async function createBoomerangVideo(
         if (e.data && e.data.size > 0) chunks.push(e.data);
       };
 
-      recorder.onstop = () => {
+      recorder.onstop = async () => {
         const videoBlob = new Blob(chunks, { type: mimeType });
         const videoUrl = URL.createObjectURL(videoBlob);
+        const videoBase64 = await blobToBase64(videoBlob);
         resolve({
           success: true,
           videoUrl,
           videoBlob,
+          videoBase64,
           mimeType,
           extension,
         });
@@ -104,7 +116,6 @@ export async function createBoomerangVideo(
       let frameIndex = 0;
       const drawNextFrame = () => {
         if (frameIndex >= seq.length) {
-          // Allow final frame to linger slightly before stopping
           setTimeout(() => {
             if (recorder.state !== 'inactive') recorder.stop();
           }, 150);

@@ -15,6 +15,10 @@ export default function Home() {
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
   const [compositePng, setCompositePng] = useState<string>('');
 
+  const handleCompositeGenerated = React.useCallback((pngData: string) => {
+    setCompositePng(pngData);
+  }, []);
+
   const handleStartSession = () => {
     soundFx.playCoinSound();
     setStep('CAMERA_SETUP');
@@ -51,7 +55,7 @@ export default function Home() {
     return (
       <FrameCompositor
         photos={capturedPhotos}
-        onCompositeGenerated={(pngData) => setCompositePng(pngData)}
+        onCompositeGenerated={handleCompositeGenerated}
         actions={
           <button
             onClick={handleGoToResult}
