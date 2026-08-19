@@ -3,10 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { Download, Film, Share2, Sparkles, RotateCcw, Check, RefreshCw, Image as ImageIcon, Camera } from 'lucide-react';
-import { createBoomerangVideo } from '@/lib/videoGenerator';
+import { createAnimatedGif } from '@/lib/gifGenerator';
 import { soundFx } from '@/lib/soundEffects';
 import { QRCodeSVG } from 'qrcode.react';
-import { uploadInitialSession, uploadVideoSession } from '@/lib/uploadApi';
+import { uploadInitialSession, uploadGifSession } from '@/lib/uploadApi';
 
 interface DownloadStudioProps {
   pngDataUrl: string;
@@ -25,9 +25,8 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
     console.log('[DownloadStudio] Using sessionId:', _activeSessionId);
     return _activeSessionId;
   });
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [videoExt, setVideoExt] = useState<'mp4' | 'webm'>('mp4');
-  const [isGeneratingVideo, setIsGeneratingVideo] = useState<boolean>(true);
+  const [gifUrl, setGifUrl] = useState<string | null>(null);
+  const [isGeneratingGif, setIsGeneratingGif] = useState<boolean>(true);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   
@@ -73,46 +72,46 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
       }
     };
 
-    // 2. PROSES B: Render Boomerang Video MP4 Super Cepat via Hardware GPU (~1 detik)
-    const startVideoPipeline = async () => {
+    // 2. PROSES B: Render Max-Resolution GIF Ultra Cepat (~150ms) via gifenc
+    const startGifPipeline = async () => {
       if (capturedPhotos.length === 0) return;
-      setIsGeneratingVideo(true);
+      setIsGeneratingGif(true);
       
       const dims = await getImageDimensions(capturedPhotos[0]);
-      const targetWidth = 480;
+      // Resolusi maksimal dari foto kamera asli (contoh: 640x480 atau 1280x720)
+      const targetWidth = Math.min(dims.width, 960);
       const targetHeight = Math.round(targetWidth * (dims.height / dims.width));
 
       try {
-        const vRes = await createBoomerangVideo(capturedPhotos, 380, targetWidth, targetHeight, 2);
+        const res = await createAnimatedGif(capturedPhotos, 380, targetWidth, targetHeight);
         if (isMounted) {
-          if (vRes.success && vRes.videoUrl) {
-            setVideoUrl(vRes.videoUrl);
-            setVideoExt(vRes.extension || 'mp4');
-            setIsGeneratingVideo(false);
+          if (res.success && res.gifUrl) {
+            setGifUrl(res.gifUrl);
+            setIsGeneratingGif(false);
 
-            // Upload video ke server secara asynchronous
-            if (vRes.videoBase64) {
-              uploadVideoSession(sessionId, vRes.videoBase64, vRes.extension || 'mp4')
+            // Upload GIF ke server secara asynchronous
+            if (res.gifBase64) {
+              uploadGifSession(sessionId, res.gifBase64)
                 .then((uploadRes) => {
-                  if (!uploadRes.success) console.warn('Video upload failed:', uploadRes.error);
+                  if (!uploadRes.success) console.warn('GIF upload failed:', uploadRes.error);
                 })
-                .catch((err) => console.error('Video upload error:', err));
+                .catch((err) => console.error('GIF upload error:', err));
             }
           } else {
-            setVideoError(vRes.error || 'Gagal merender video');
-            setIsGeneratingVideo(false);
+            setVideoError(res.error || 'Gagal merender GIF');
+            setIsGeneratingGif(false);
           }
         }
       } catch (err) {
         if (isMounted) {
-          setVideoError('Terjadi kesalahan saat memproses video');
-          setIsGeneratingVideo(false);
+          setVideoError('Terjadi kesalahan saat memproses GIF');
+          setIsGeneratingGif(false);
         }
       }
     };
 
     startInitialUpload();
-    startVideoPipeline();
+    startGifPipeline();
 
     return () => {
       isMounted = false;
@@ -129,12 +128,12 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
     document.body.removeChild(a);
   };
 
-  const handleDownloadVideo = () => {
-    if (!videoUrl) return;
+  const handleDownloadGif = () => {
+    if (!gifUrl) return;
     soundFx.playClickSound();
     const a = document.createElement('a');
-    a.href = videoUrl;
-    a.download = `medkombox-boomerang-${Date.now()}.${videoExt}`;
+    a.href = gifUrl;
+    a.download = `medkombox-animation-${Date.now()}.gif`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -263,49 +262,46 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
           </button>
         </div>
 
-        {/* 2. Boomerang Video Card */}
+        {/* 2. Animated GIF Card */}
         <div className="neo-box rounded-2xl p-4 bg-[#ffffff] flex flex-col items-center gap-3">
           <div className="w-full flex items-center justify-between border-b-2 border-[#202030] pb-2">
             <span className="text-xs font-extrabold uppercase text-[#8e36ff] font-chillax flex items-center gap-1">
               <Film className="w-4 h-4" />
-              2. VIDEO BOOMERANG ({videoExt.toUpperCase()})
+              2. ANIMATED GIF (LOOP)
             </span>
             <span className="text-[10px] bg-[#faf8ff] text-[#8e36ff] px-2 py-0.5 rounded-md font-bold border border-[#202030]">
-              LOOP VIDEO
+              MAX RES
             </span>
           </div>
 
           <div className="w-full min-h-[250px] max-h-[380px] rounded-xl border-2 border-[#202030] bg-[#faf8ff] flex items-center justify-center overflow-hidden relative p-2">
-            {isGeneratingVideo ? (
+            {isGeneratingGif ? (
               <div className="flex flex-col items-center gap-2 p-4 text-center">
                 <RefreshCw className="w-8 h-8 text-[#8e36ff] animate-spin" />
                 <span className="text-xs font-bold font-chillax text-[#8e36ff]">
-                  Memproses Video Boomerang...
+                  Memproses Animasi GIF (Max Res)...
                 </span>
               </div>
-            ) : videoUrl ? (
-              <video
-                src={videoUrl}
-                autoPlay
-                loop
-                muted
-                playsInline
+            ) : gifUrl ? (
+              <img
+                src={gifUrl}
+                alt="Animated Photobooth GIF"
                 className="max-h-[360px] w-auto h-auto object-contain rounded-lg shadow-md mx-auto"
               />
             ) : (
               <span className="text-xs text-[#ef4444] font-bold p-4 text-center">
-                {videoError || 'Video tidak dapat dibuat'}
+                {videoError || 'GIF tidak dapat dibuat'}
               </span>
             )}
           </div>
 
           <button
-            onClick={handleDownloadVideo}
-            disabled={!videoUrl || isGeneratingVideo}
+            onClick={handleDownloadGif}
+            disabled={!gifUrl || isGeneratingGif}
             className="w-full neo-btn-yellow py-3 text-sm font-bold flex items-center justify-center gap-2 font-chillax disabled:opacity-50 mt-2"
           >
             <Film className="w-4 h-4" />
-            DOWNLOAD VIDEO BOOMERANG ({videoExt.toUpperCase()})
+            DOWNLOAD GIF ANIMATED
           </button>
         </div>
       </div>

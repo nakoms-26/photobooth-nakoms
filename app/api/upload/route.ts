@@ -146,7 +146,7 @@ export async function POST(req: Request) {
 
     const [pngUrl, gifUrl, photo1Url, photo2Url, photo3Url] = await Promise.all([
       pngUploadPromise,
-      videoUploadPromise,
+      gifUploadPromise,
       raw1Promise.catch((e: Error) => { console.error('[upload/initial] Raw 1 error:', e.message); return null; }),
       raw2Promise.catch((e: Error) => { console.error('[upload/initial] Raw 2 error:', e.message); return null; }),
       raw3Promise.catch((e: Error) => { console.error('[upload/initial] Raw 3 error:', e.message); return null; }),
