@@ -153,7 +153,11 @@ export default function DownloadClientPage({ id, initialSession }: DownloadClien
   ].filter((p): p is { title: string; url: string; prefix: string } => Boolean(p.url));
 
 
-  const isGifReady = session.gifPath && session.gifPath !== 'PENDING';
+  const isVideoReady = Boolean(
+    session.gifPath &&
+    session.gifPath !== 'PENDING' &&
+    session.gifPath.trim().length > 0
+  );
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)] py-8 px-4 font-sans">
@@ -214,7 +218,7 @@ export default function DownloadClientPage({ id, initialSession }: DownloadClien
             </span>
           </div>
           
-          {isGifReady ? (
+          {isVideoReady ? (
             <>
               <div className="w-full max-w-[320px] bg-gray-50 border-2 border-gray-200 rounded-xl p-2 overflow-hidden shadow-sm flex items-center justify-center">
                 {session.gifPath!.endsWith('.gif') ? (

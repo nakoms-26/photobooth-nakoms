@@ -57,8 +57,8 @@ export async function POST(req: Request) {
 
       const videoUrl = await uploadToAssetServer(
         animData,
-        `photo_boomerang_${timestamp}.${animExt}`,
-        animMime,
+        `photo_boomerang_${timestamp}.mp4`,
+        'video/mp4',
         `snapkoms_${incomingSessionId}_video`
       );
 
@@ -105,8 +105,8 @@ export async function POST(req: Request) {
     const videoUploadPromise = animData
       ? uploadToAssetServer(
           animData,
-          `photo_boomerang_${timestamp}.${animExt}`,
-          animMime,
+          `photo_boomerang_${timestamp}.mp4`,
+          'video/mp4',
           `snapkoms_${sessionId}_video`
         )
       : Promise.resolve('');
