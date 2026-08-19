@@ -4,7 +4,12 @@ import { db } from '@/lib/db';
 const UPLOAD_URL = process.env.UPLOAD_API_URL!;
 const UPLOAD_SECRET = process.env.UPLOAD_SECRET!;
 
-async function uploadToAssetServer(base64: string, filename: string, mimeType: string): Promise<string> {
+async function uploadToAssetServer(
+  base64: string,
+  filename: string,
+  mimeType: string,
+  appName: string = 'snapkoms'
+): Promise<string> {
   // Convert base64 to Blob
   const base64Data = base64.replace(/^data:[^;]+;base64,/, '');
   const buffer = Buffer.from(base64Data, 'base64');
@@ -12,7 +17,7 @@ async function uploadToAssetServer(base64: string, filename: string, mimeType: s
 
   const formData = new FormData();
   formData.append('secret', UPLOAD_SECRET);
-  formData.append('app', 'snapkoms');
+  formData.append('app', appName);
   formData.append('file', blob, filename);
 
   const response = await fetch(UPLOAD_URL, {
@@ -26,7 +31,7 @@ async function uploadToAssetServer(base64: string, filename: string, mimeType: s
   }
 
   const result = await response.json();
-  console.log('[asset-server] Response:', JSON.stringify(result));
+  console.log(`[asset-server][${appName}] Response:`, JSON.stringify(result));
 
   // Handle berbagai kemungkinan field name dari upload.php
   const fileUrl = result.url || result.file_url || result.path || result.link;
@@ -47,7 +52,12 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Missing sessionId for GIF update' }, { status: 400 });
       }
 
-      const gifUrl = await uploadToAssetServer(gifBase64, `photo_anim_${timestamp}.gif`, 'image/gif');
+      const gifUrl = await uploadToAssetServer(
+        gifBase64,
+        `photo_anim_${timestamp}.gif`,
+        'image/gif',
+        `snapkoms_${incomingSessionId}_gif`
+      );
 
       try {
         await db.sessionData.update({
@@ -81,16 +91,48 @@ export async function POST(req: Request) {
     const sessionId = incomingSessionId || ('c' + timestamp.toString(36) + Math.random().toString(36).substring(2, 7));
     console.log('[upload/initial] sessionId:', sessionId, '| rawPhotos count:', rawPhotos.length);
 
-    const pngUploadPromise = uploadToAssetServer(pngBase64, `photo_strip_${timestamp}.jpg`, 'image/jpeg')
-      .catch((e: Error) => { console.error('[upload/initial] PNG/JPG upload error:', e.message); throw e; });
+    const pngUploadPromise = uploadToAssetServer(
+      pngBase64,
+      `photo_strip_${timestamp}.jpg`,
+      'image/jpeg',
+      `snapkoms_${sessionId}_strip`
+    ).catch((e: Error) => { console.error('[upload/initial] PNG/JPG upload error:', e.message); throw e; });
 
     const gifUploadPromise = gifBase64
-      ? uploadToAssetServer(gifBase64, `photo_anim_${timestamp}.gif`, 'image/gif')
+      ? uploadToAssetServer(
+          gifBase64,
+          `photo_anim_${timestamp}.gif`,
+          'image/gif',
+          `snapkoms_${sessionId}_gif`
+        )
       : Promise.resolve(''); // GIF dinonaktifkan sementara — simpan empty string di DB
 
-    const raw1Promise = (rawPhotos && rawPhotos[0]) ? uploadToAssetServer(rawPhotos[0], `raw_photo_1_${timestamp}.jpg`, 'image/jpeg') : Promise.resolve(null);
-    const raw2Promise = (rawPhotos && rawPhotos[1]) ? uploadToAssetServer(rawPhotos[1], `raw_photo_2_${timestamp}.jpg`, 'image/jpeg') : Promise.resolve(null);
-    const raw3Promise = (rawPhotos && rawPhotos[2]) ? uploadToAssetServer(rawPhotos[2], `raw_photo_3_${timestamp}.jpg`, 'image/jpeg') : Promise.resolve(null);
+    const raw1Promise = (rawPhotos && rawPhotos[0])
+      ? uploadToAssetServer(
+          rawPhotos[0],
+          `raw_photo_1_${timestamp}.jpg`,
+          'image/jpeg',
+          `snapkoms_${sessionId}_raw1`
+        )
+      : Promise.resolve(null);
+
+    const raw2Promise = (rawPhotos && rawPhotos[1])
+      ? uploadToAssetServer(
+          rawPhotos[1],
+          `raw_photo_2_${timestamp}.jpg`,
+          'image/jpeg',
+          `snapkoms_${sessionId}_raw2`
+        )
+      : Promise.resolve(null);
+
+    const raw3Promise = (rawPhotos && rawPhotos[2])
+      ? uploadToAssetServer(
+          rawPhotos[2],
+          `raw_photo_3_${timestamp}.jpg`,
+          'image/jpeg',
+          `snapkoms_${sessionId}_raw3`
+        )
+      : Promise.resolve(null);
 
     const [pngUrl, gifUrl, photo1Url, photo2Url, photo3Url] = await Promise.all([
       pngUploadPromise,
