@@ -52,6 +52,42 @@ export default async function DownloadPage({ params }: { params: Promise<{ id: s
     }
   }
 
+  let totalCount: number | null = null;
+  let photoNumber: number | null = null;
+
+  try {
+    totalCount = await db.sessionData.count();
+    if (session?.createdAt) {
+      photoNumber = await db.sessionData.count({
+        where: {
+          createdAt: {
+            lte: new Date(session.createdAt),
+          },
+        },
+      });
+    }
+  } catch {
+    try {
+      const countRes = await db.$queryRawUnsafe<Array<{ count: bigint | number }>>(
+        'SELECT COUNT(*) as count FROM SessionData'
+      );
+      if (countRes && countRes.length > 0) {
+        totalCount = Number(countRes[0].count);
+      }
+      if (session?.createdAt) {
+        const numRes = await db.$queryRawUnsafe<Array<{ count: bigint | number }>>(
+          'SELECT COUNT(*) as count FROM SessionData WHERE createdAt <= ?',
+          session.createdAt
+        );
+        if (numRes && numRes.length > 0) {
+          photoNumber = Number(numRes[0].count);
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to fetch count on download page:", err);
+    }
+  }
+
   return (
     <DownloadClientPage 
       id={id}
@@ -63,7 +99,11 @@ export default async function DownloadPage({ params }: { params: Promise<{ id: s
         photo2Path: session.photo2Path ?? null,
         photo3Path: session.photo3Path ?? null,
         createdAt: session.createdAt ? new Date(session.createdAt).toISOString() : new Date().toISOString(),
+        totalCount: totalCount ?? undefined,
+        photoNumber: photoNumber ?? undefined,
       } : null}
+      initialTotalCount={totalCount}
+      initialPhotoNumber={photoNumber}
     />
   );
 }

@@ -32,6 +32,7 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
   
   const [isUploading, setIsUploading] = useState<boolean>(true);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [totalGenerated, setTotalGenerated] = useState<number | null>(null);
 
   // Helper to load image and extract true aspect ratio
   const getImageDimensions = (src: string): Promise<{ width: number; height: number }> => {
@@ -42,6 +43,22 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
       img.src = src;
     });
   };
+
+  // Fetch general stats on mount as early fallback
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/stats')
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data.success && typeof data.totalPhotos === 'number' && data.totalPhotos > 0) {
+          setTotalGenerated((prev) => prev ?? data.totalPhotos);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Trigger celebration confetti on mount
   useEffect(() => {
@@ -67,6 +84,9 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
       clearInterval(progressInterval);
       if (isMounted) {
         setUploadProgress(100);
+        if (res.totalCount && res.totalCount > 0) {
+          setTotalGenerated(res.totalCount);
+        }
         if (!res.success) console.warn('Initial upload failed:', res.error);
         setIsUploading(false);
       }
@@ -171,23 +191,37 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
     <div className="w-full max-w-3xl flex flex-col items-center justify-center gap-6 animate-fadeIn pb-12">
       
       {/* Header Banner */}
-      <div className="neo-box-yellow p-4 w-full text-center flex flex-col items-center gap-1">
-        <div className="flex items-center gap-2 text-2xl font-extrabold font-chillax text-white">
+      <div className="neo-box-yellow p-4 md:p-5 w-full text-center flex flex-col items-center gap-2">
+        <div className="flex items-center gap-2 text-2xl md:text-3xl font-extrabold font-chillax text-white">
           <Sparkles className="w-6 h-6 text-[#f8d22a] animate-spin" />
           YAY! SESI FOTO SELESAI!
           <Sparkles className="w-6 h-6 text-[#f8d22a] animate-spin" />
         </div>
-        <p className="text-xs font-bold text-white/90">
+        <p className="text-xs md:text-sm font-bold text-white/95">
           Foto kamu telah berhasil disimpan! Strip PNG, Video Boomerang & 3 foto mentahan siap didownload.
         </p>
+        {totalGenerated !== null && (
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-black/20 backdrop-blur-sm border-2 border-white/60 rounded-full font-chillax font-black text-xs md:text-sm text-yellow-300 shadow-sm mt-1">
+            <Camera className="w-4 h-4 text-yellow-300" />
+            <span>Foto ke-<strong>#{totalGenerated}</strong> yang berhasil di-generate!</span>
+          </div>
+        )}
       </div>
 
       {/* ENLARGED QR CODE CARD (INSTANT DISPLAY & ZERO-DELAY SCANNING) */}
       <div className="neo-box w-full bg-white p-6 md:p-8 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 border-4 border-black shadow-[6px_6px_0_#000]">
         <div className="flex flex-col items-center md:items-start text-center md:text-left gap-3 max-w-md">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-400 border-2 border-black rounded-full font-chillax font-black text-xs text-black shadow-[2px_2px_0_#000]">
-            <Check className="w-4 h-4 text-black stroke-[3]" />
-            QR CODE SIAP DI-SCAN INSTAN
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-400 border-2 border-black rounded-full font-chillax font-black text-xs text-black shadow-[2px_2px_0_#000]">
+              <Check className="w-4 h-4 text-black stroke-[3]" />
+              QR CODE SIAP DI-SCAN INSTAN
+            </div>
+            {totalGenerated !== null && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-yellow-300 border-2 border-black rounded-full font-chillax font-black text-xs text-black shadow-[2px_2px_0_#000]">
+                <Sparkles className="w-3.5 h-3.5 text-black" />
+                <span>Foto ke-#{totalGenerated}</span>
+              </div>
+            )}
           </div>
           <h3 className="font-chillax font-black text-2xl md:text-3xl text-[var(--color-primary)]">
             SCAN UNTUK DOWNLOAD!
@@ -207,10 +241,16 @@ export default function DownloadStudio({ pngDataUrl, capturedPhotos, onResetSess
               ) : (
                 <>
                   <span className="w-2.5 h-2.5 rounded-full bg-green-500"></span>
-                  <span>1 Strip PNG + 1 Video MP4 + 3 Foto Mentahan siap didownload</span>
+                  <span>1 Strip PNG + 1 Animasi GIF + 3 Foto Mentahan siap didownload</span>
                 </>
               )}
             </div>
+            {totalGenerated !== null && (
+              <div className="text-[11px] font-bold text-purple-700 flex items-center gap-1.5 mt-0.5">
+                <Sparkles className="w-3 h-3 text-[var(--color-primary)]" />
+                <span>Total <strong>{totalGenerated} foto</strong> telah digenerate di Snapkoms</span>
+              </div>
+            )}
           </div>
         </div>
         

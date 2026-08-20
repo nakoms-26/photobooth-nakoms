@@ -5,6 +5,7 @@ export interface InitialUploadResponse {
   photo1Url?: string | null;
   photo2Url?: string | null;
   photo3Url?: string | null;
+  totalCount?: number;
   error?: string;
 }
 

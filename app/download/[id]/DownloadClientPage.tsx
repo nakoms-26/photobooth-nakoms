@@ -12,16 +12,41 @@ interface SessionDataPayload {
   photo2Path?: string | null;
   photo3Path?: string | null;
   createdAt: string;
+  totalCount?: number | null;
+  photoNumber?: number | null;
 }
 
 interface DownloadClientPageProps {
   id: string;
   initialSession: SessionDataPayload | null;
+  initialTotalCount?: number | null;
+  initialPhotoNumber?: number | null;
 }
 
-export default function DownloadClientPage({ id, initialSession }: DownloadClientPageProps) {
+export default function DownloadClientPage({ 
+  id, 
+  initialSession, 
+  initialTotalCount = null, 
+  initialPhotoNumber = null 
+}: DownloadClientPageProps) {
   const [session, setSession] = useState<SessionDataPayload | null>(initialSession);
+  const [totalCount, setTotalCount] = useState<number | null>(initialTotalCount ?? initialSession?.totalCount ?? null);
+  const [photoNumber, setPhotoNumber] = useState<number | null>(initialPhotoNumber ?? initialSession?.photoNumber ?? null);
   const shouldPollRef = useRef<boolean>(!initialSession || !initialSession.gifPath);
+
+  useEffect(() => {
+    // Fetch stats if not already provided
+    if (!totalCount) {
+      fetch('/api/stats')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && typeof data.totalPhotos === 'number' && data.totalPhotos > 0) {
+            setTotalCount(data.totalPhotos);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [totalCount]);
 
   useEffect(() => {
     if (!shouldPollRef.current) return;
@@ -39,6 +64,8 @@ export default function DownloadClientPage({ id, initialSession }: DownloadClien
           const result = await res.json();
           if (result.found && result.data && isMounted) {
             setSession(result.data);
+            if (result.data.totalCount) setTotalCount(result.data.totalCount);
+            if (result.data.photoNumber) setPhotoNumber(result.data.photoNumber);
             if (result.data.gifPath && result.data.gifPath.length > 0 && result.data.gifPath !== 'PENDING') {
               shouldPollRef.current = false;
               return;
@@ -159,6 +186,8 @@ export default function DownloadClientPage({ id, initialSession }: DownloadClien
     session.gifPath.trim().length > 0
   );
 
+  const displayPhotoNumber = photoNumber ?? session.photoNumber ?? totalCount;
+
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)] py-8 px-4 font-sans">
       <div className="max-w-xl mx-auto flex flex-col gap-8">
@@ -171,9 +200,23 @@ export default function DownloadClientPage({ id, initialSession }: DownloadClien
           <p className="text-sm md:text-base font-semibold text-[var(--color-text-secondary)]">
             {formattedDate}
           </p>
-          <div className="inline-flex self-center items-center gap-1.5 px-3 py-1 bg-yellow-300 text-black border-2 border-black rounded-full font-chillax font-bold text-xs shadow-[2px_2px_0_#000]">
-            <Sparkles className="w-3.5 h-3.5" />
-            5 File Siap Didownload
+          
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-yellow-300 text-black border-2 border-black rounded-full font-chillax font-bold text-xs shadow-[2px_2px_0_#000]">
+              <Sparkles className="w-3.5 h-3.5" />
+              5 File Siap Didownload
+            </div>
+            {displayPhotoNumber && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-400 text-black border-2 border-black rounded-full font-chillax font-black text-xs shadow-[2px_2px_0_#000]">
+                <Camera className="w-3.5 h-3.5 stroke-[2.5]" />
+                Foto ke-#{displayPhotoNumber} Digenerate
+              </div>
+            )}
+            {totalCount && totalCount > 0 && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#f28df8] text-black border-2 border-black rounded-full font-chillax font-black text-xs shadow-[2px_2px_0_#000]">
+                <span>Total: {totalCount} Foto</span>
+              </div>
+            )}
           </div>
         </div>
 

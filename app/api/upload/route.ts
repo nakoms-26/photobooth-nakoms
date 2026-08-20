@@ -187,6 +187,23 @@ export async function POST(req: Request) {
       }
     }
 
+    // Hitung total foto/sesi yang sudah digenerate
+    let totalCount = 0;
+    try {
+      totalCount = await db.sessionData.count();
+    } catch {
+      try {
+        const rawRes = await db.$queryRawUnsafe<Array<{ count: bigint | number }>>(
+          'SELECT COUNT(*) as count FROM SessionData'
+        );
+        if (rawRes && rawRes.length > 0) {
+          totalCount = Number(rawRes[0].count);
+        }
+      } catch (countErr) {
+        console.warn('Failed to get total count:', countErr);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       id: sessionId,
@@ -195,6 +212,7 @@ export async function POST(req: Request) {
       photo1Url,
       photo2Url,
       photo3Url,
+      totalCount,
     });
 
   } catch (error: unknown) {
